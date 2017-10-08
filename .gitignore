@@ -1,0 +1,13 @@
+# exported model
+*.egg
+*.pz
+tex
+
+# auto generated
+*.pyc
+*.idea
+*.swp
+*.blend1
+
+# something else
+backup
