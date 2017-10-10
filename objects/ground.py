@@ -5,6 +5,6 @@ from util import trigger
 import variable
 
 def create():
-    ground = primitive.make_ground(variable.show_base.render)
-    trigger.addGroundDetectTarge(ground)
-    return ground
+    visual_np = primitive.make_ground(variable.show_base.render)
+    visual_np.setTag("type", "ground")
+    return visual_np

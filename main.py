@@ -18,7 +18,7 @@ class Test(ShowBase):
         variable.show_base = self
         keyboard.is_button_down = self.mouseWatcherNode.is_button_down
         self.triggers = trigger.Triggers()
-        self.physics_world = physics.PhysicsWorld(self.render)
+        self.physics_world = physics.PhysicsWorld()
         self.taskMgr.add(self.ode_physics_task, "physics")
 
         # create objects
@@ -43,7 +43,8 @@ class Test(ShowBase):
         return task.cont
 
     def ode_physics_task(self, task):
-        self.physics_world.simulationTask(task, self.taskMgr.globalClock.getDt())
+        dt = self.taskMgr.globalClock.getDt()
+        self.physics_world.onUpdate(dt)
         # camera control
         self.cam.set_pos(self.hero.getNP().get_pos() + Vec3(0, -20, 20))
         self.cam.look_at(self.hero.getNP())

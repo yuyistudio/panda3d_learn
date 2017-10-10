@@ -2,42 +2,40 @@
 
 from panda3d.ode import *
 from panda3d.core import *
-import math
-from panda3d.core import VBase3, Point3
+from panda3d.bullet import *
 import variable
 
+
 class PhysicsWorld(object):
+    """
+    object hierarchy:
+        render
+            physical_node (with physical_node_geom)
+                visual_node (model / actor)
+
+    trigger hierarchy:
+        model node
+            trigger_box (ghost node)
+    """
     instance = None
+    MASS_IFINITE = 0
     COLLISION_EVENT_NAME = "__ODE_COLLISION_EVENT__"
-    def __init__(self, root_np):
+    def __init__(self, debug=True):
         if PhysicsWorld.instance:
             raise RuntimeError("duplicated physics world")
         PhysicsWorld.instance = self
+        self.render = variable.show_base.render
+        self.render = variable.show_base.render
+        self.world = BulletWorld()
+        self.world.setGravity(Vec3(0, 0, -9.81))
+        if debug:
+            debugNode = BulletDebugNode("debug_bullet")
+            self.world.setDebugNode(debugNode)
+            debugNode.showWireframe(True)
+            debugNp = self.render.attachNewNode(debugNode)
+            debugNp.show()
 
-        self.root_np = root_np
-        self.world = OdeWorld()
-        self.world.setGravity(0, 0, -9.81)
-        self.world.initSurfaceTable(1)
-        self.world.setSurfaceEntry(0, 0, # id pair
-                                   1.3, # frection
-                                   0, # bouce
-                                   9.1, # minimum bounce angle
-                                   0.0, # how soft?
-                                   0.0, # how sof?
-                                   10, # slip. make body to slide past another!
-                                   0.0) # dampen
-
-        space = OdeQuadTreeSpace(Point3(0, 0, 0), VBase3(100, 100, 100), 3)  # center extents depth
-        space.setAutoCollideWorld(self.world)
-        self.contactgroup = OdeJointGroup()
-        space.setAutoCollideJointGroup(self.contactgroup)
-        self.space = space
-        self.space.setCollisionEvent(self.COLLISION_EVENT_NAME)
-        #self.space.autoCollide()
-        self.np_list = []
-
-
-    def addBoxCollider(self, box_np, density=1000, is_static=False, auto_transform=True, auto_disable=True):
+    def addBoxCollider(self, box_np, mass, bit_mask=variable.BIT_MASK_OBJECT):
         if variable.SHOW_BOUNDS:
             box_np.showTightBounds()
 
@@ -46,50 +44,89 @@ class PhysicsWorld(object):
                      abs(bb[0].getY() - bb[1].getY()),\
                      abs(bb[0].getZ() - bb[1].getZ())
 
-        rigid_body = None
-        if not is_static:
-            rigid_body = OdeBody(self.world)
-            M = OdeMass()
-            M.setBox(density, dx, dy, dz)  # first argument means density
-            rigid_body.set_mass(M)
-            rigid_body.set_auto_disable_flag(auto_disable)  # TODO setup auto disable
-            rigid_body.set_position(box_np.getPos(self.root_np))
-            rigid_body.set_quaternion(box_np.getQuat(self.root_np))
+        half_size = Vec3(dx/2, dy/2, dz/2)
+        shape = BulletBoxShape(half_size)
+        node = BulletRigidBodyNode('physical_box_shapes')
+        node.setMass(mass)
+        node.addShape(shape)
+        node.setIntoCollideMask(bit_mask)
 
-            if auto_transform:
-                self.np_list.append((box_np, rigid_body, auto_transform))
+        '''
+        # TODO xy-rotation & z-position limitation
+        hpr = TransformState.makePosHpr(Point3(-5), Vec3(0, 0, 0))
+        hpr2 = TransformState.makePosHpr(Point3(5), Vec3(0, 0, 360))
+        gc = BulletGenericConstraint(node, hpr, hpr2)
+        #gc.setAngularLimit(0, 0, 0)
+        #gc.setAngularLimit(1, 0, 0)
+        self.world.attachConstraint(gc)
+        '''
 
-        box_geom = OdeBoxGeom(self.space, dx, dy, dz)  # dx/dy/dz is side length
-        box_geom.setCollideBits(variable.ODE_COMMON)
-        box_geom.setCategoryBits(variable.ODE_CATEGORY_COMMON)
-        if rigid_body:
-            box_geom.setBody(rigid_body)
-            box_geom.setOffsetPosition(0, 0, dz/2)  # setup geom's relative position from its body
-        else:
-            pos = box_np.get_pos()
-            pos.add_z(dz / 2)
-            box_geom.set_position(pos)
-        return rigid_body
+        self.world.attachRigidBody(node)
 
-    def addPlaneCollider(self, plane_np):
-        geom = OdePlaneGeom(plane_np, Vec4(0, 0, 1, 0))
-        geom.setCollideBits(BitMask32(0x00000001))
-        geom.setCategoryBits(BitMask32(0x00000001))
+        np = self.render.attachNewNode(node)
+        np.setName("physical_box")
+        node.setPythonTag("instance", np)
+        np.setPos(box_np.getPos())
+        np.setZ(np, dz/2)
+        box_np.setPos(Vec3(0, 0, -dz/2))
+        box_np.reparentTo(np)  # to sync the transform automatically
+        return np
 
-    # The task for our simulation
-    def simulationTask(self, task, dt):
-        self.space.autoCollide()  # Setup the contact joints
+    def addBoxTrigger(self, box_np, bit_mask):
+        if variable.SHOW_BOUNDS:
+            box_np.showTightBounds()
 
-        # avoid large step problem
-        if dt > 0.1:
-            return task.cont
-        # Step the simulation and set the new positions
-        self.world.quickStep(dt)
-        for np, body, auto_transform in self.np_list:
-            if auto_transform:
-                np.setPosQuat(self.root_np, body.getPosition(), Quat(body.getQuaternion()))
-            else:
-                pass
-                #np.setPos(self.root_np, body.getPosition())
-        self.contactgroup.empty()  # Clear the contact joints
-        return task.cont
+        bb = box_np.getTightBounds()  # calulcate bounds before any rotation or scale
+        dx, dy, dz = abs(bb[0].getX() - bb[1].getX()),\
+                     abs(bb[0].getY() - bb[1].getY()),\
+                     abs(bb[0].getZ() - bb[1].getZ())
+
+        half_size = Vec3(dx/2, dy/2, dz/2)
+        shape = BulletBoxShape(half_size)
+        node = BulletGhostNode('trigger_box_shapes')
+        node.addShape(shape)
+        node.setIntoCollideMask(bit_mask)
+        self.world.attachGhost(node)
+
+        np = box_np.attachNewNode(node)
+        np.setName("rigger_box")
+        pos = Point3((bb[1].getX() + bb[0].getX()) / 2 - box_np.getX(),
+                     (bb[1].getY() + bb[0].getY()) / 2 - box_np.getY(),
+                     (bb[1].getZ() + bb[0].getZ()) / 2 - box_np.getZ())
+        np.setPos(pos)
+        return np
+
+    def addGround(self, plane_np):
+        shape = BulletPlaneShape(Vec3(0, 0, 1), 0)
+        node = BulletRigidBodyNode('physical_ground_shapes')
+        node.addShape(shape)
+        node.setFriction(1)
+        node.setIntoCollideMask(variable.BIT_MASK_GROUND)
+        np = self.render.attachNewNode(node)
+        np.setName("physical_ground")  # if unset, take the name of its node
+        np.setPos(0, 0, 0)
+        self.world.attachRigidBody(node)
+        plane_np.reparentTo(np)
+        return np
+
+    def onUpdate(self, dt):
+        self.world.doPhysics(dt)
+
+    def mouseHit(self, distance=100):
+        mn = variable.show_base.mouseWatcherNode
+        if not mn.hasMouse():
+            return []
+        base = variable.show_base
+        render = base.render
+
+        # Get from/to points from mouse click
+        pMouse = mn.getMouse()
+        pFrom = Point3()
+        pTo = Point3()
+        base.camLens.extrude(pMouse, pFrom, pTo)
+        pFrom = render.getRelativePoint(base.cam, pFrom)
+        pTo = render.getRelativePoint(base.cam, pTo)
+        pTo = pFrom + (pTo - pFrom) .normalized() * distance
+
+        result = self.world.rayTestAll(pFrom, pTo, variable.BIT_MASK_MOUSE)
+        return result.getHits() or []

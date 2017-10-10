@@ -8,8 +8,6 @@ def create(pos):
     box.setName("box")
     box.setPos(pos)
     box.reparentTo(variable.show_base.render)
-    rigid_body = variable.show_base.physics_world.addBoxCollider(box, auto_transform=True, auto_disable=True, is_static=False)
-    box.setTag("type", "box")
-    # for mouse pick
-    trigger.addCollisionBox(box, variable.BIT_MASK_OBJECT, "box", to_enabled=True)
-    return box
+    physical_np = variable.show_base.physics_world.addBoxCollider(box, mass=1, bit_mask=variable.BIT_MASK_OBJECT)
+    physical_np.setTag("type", "box")
+    return physical_np
