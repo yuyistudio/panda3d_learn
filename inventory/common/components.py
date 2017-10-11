@@ -51,7 +51,7 @@ class BaseItemComponent(object):
 class ItemStackable(BaseItemComponent):
     def __init__(self, config):
         BaseItemComponent.__init__(self)
-        max_count = config["max_count"]
+        max_count = config.get("max_count", 10)
         self._max_count = max_count
         self._count = max_count
 
@@ -60,6 +60,10 @@ class ItemStackable(BaseItemComponent):
 
     def get_max_count(self):
         return self._max_count
+
+    def set_count(self, count):
+        assert 1 <= count <= self._max_count, 'invalid stackable count %d' % count
+        self._count = count
 
     def change_count(self, count_delta):
         self._count += count_delta
@@ -93,7 +97,7 @@ class Nutrition(object):
 
 class ItemEdible(_SingleCustomValue):
     def __init__(self, config):
-        _SingleCustomValue.__init__(self, Nutrition(config["food"], config["sanity"]))
+        _SingleCustomValue.__init__(self, Nutrition(config.get("food", 30), config.get("sanity", 3)))
 
     def get_nutrition(self):
         return self.get_value()
@@ -126,9 +130,12 @@ class SingleValueMergeable(BaseItemComponent):
     def get_percentage(self):
         return 1. * self._value / self._max_value
 
+    def set_percentage(self, percentange):
+        self._value = self._max_value * percentange
+
 
 class ItemPerishable(SingleValueMergeable):
     def __init__(self, config):
-        SingleValueMergeable.__init__(config.get("time", 80))
+        SingleValueMergeable.__init__(self, config.get("time", 80))  # seconds
 
 
