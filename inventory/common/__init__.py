@@ -1,5 +1,6 @@
 #encoding: utf8
 
 """
-logical inventory implement that is independent on specified game.
+Logical inventory implement that is independent on specified game or specified game engine.
+It depends only on python itself.
 """

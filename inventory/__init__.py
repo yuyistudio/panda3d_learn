@@ -1,5 +1,6 @@
 #encoding: utf8
 
 """
-logical inventory implement
+Inventory implement that's for this survival game.
 """
+
