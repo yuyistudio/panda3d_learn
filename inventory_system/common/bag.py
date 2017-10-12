@@ -59,7 +59,7 @@ class Bag(object):
             stackable.set_count(count)
         else:
             assert count == 1, 'cannot set count attributes on non-stackable item %s' % name
-        return self.put_item(item)
+        return self.add_item(item)
 
     def get_switched_item(self):
         """
@@ -100,7 +100,8 @@ class Bag(object):
 
     def take_item_at(self, index):
         """
-        just take away the item
+        Take away the item.
+        There's no delete() for the bag, just use this function instead.
         """
         self._set_item(index, None)
         return self.get_switched_item()
@@ -122,7 +123,7 @@ class Bag(object):
             item.on_put_into_bag(self)
         self._items[index] = item
 
-    def put_item(self, item):
+    def add_item(self, item):
         """
         put item into this bag.
         :param item:
@@ -198,6 +199,7 @@ class Bag(object):
         return data
 
     def on_load(self, data):
+        self._items = [None] * len(data)
         for i in range(len(data)):
             item_data = data[i]
             if not item_data:
@@ -318,22 +320,22 @@ class BagTest(unittest.TestCase):
         self.assertEqual(bag.put_item_at(1, apple), consts.PUT_MERGE_FAILED)
 
         apple = Item.create_by_name("apple", 3)
-        self.assertEqual(bag.put_item(apple), consts.BAG_PUT_TOTALLY)
+        self.assertEqual(bag.add_item(apple), consts.BAG_PUT_TOTALLY)
 
         axe = Item.create_by_name("axe")
         self.assertEqual(bag.put_item_at(1, axe), consts.PUT_SWITCH)
         bag.get_switched_item()  # must call this after a switch action.
 
         apple = Item.create_by_name("apple", 5)
-        self.assertEqual(bag.put_item(apple), consts.BAG_PUT_TOTALLY)
+        self.assertEqual(bag.add_item(apple), consts.BAG_PUT_TOTALLY)
 
         self.assertEqual(bag.take_item_at(1), axe)
 
         apple = Item.create_by_name("apple", 4)
-        self.assertEqual(bag.put_item(apple), consts.BAG_PUT_TOTALLY)
+        self.assertEqual(bag.add_item(apple), consts.BAG_PUT_TOTALLY)
 
         apple = Item.create_by_name("apple", 5)
-        self.assertEqual(bag.put_item(apple), consts.BAG_PUT_TOTALLY)
+        self.assertEqual(bag.add_item(apple), consts.BAG_PUT_TOTALLY)
         self.assertEqual(bag.get_item_at(0).get_count(), 5)
         self.assertEqual(bag.get_item_at(1).get_count(), 5)
         self.assertEqual(bag.get_item_at(2).get_count(), 5)

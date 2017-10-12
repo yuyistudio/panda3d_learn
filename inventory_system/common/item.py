@@ -142,9 +142,11 @@ class Item(object):
             return consts.PUT_MERGE_PARTIALLY
 
     def on_taken_from_bag(self, bag):
+        """overwrite this method"""
         pass
 
     def on_put_into_bag(self, bag):
+        """overwrite this method"""
         pass
 
     def on_save(self):
@@ -152,7 +154,7 @@ class Item(object):
         for com_type, com in self._components.iteritems():
             key = get_component_name(com_type)
             value = com.on_save()
-            assert value != None, "com[%s].on_save() returns None" % key
+            assert value != None, "unexpected, com[%s].on_save() returns None" % key
             data[key] = value
         return data
 
