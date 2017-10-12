@@ -4,7 +4,11 @@
 the class,whose name is started with `Item`, will be used as ItemComponent.
 """
 
+# If there's nothing to be saved, then return NO_STORAGE flag, rather than None.
+# If on_save() forgets to return its data, then None is returned,
+# thus we can identify this error immediately.
 NO_STORAGE = "__NO_STORAE__"
+
 
 class BaseItemComponent(object):
     def __init__(self):

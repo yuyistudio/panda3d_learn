@@ -1,3 +1,4 @@
+#encoding: utf8
 
 class Equippable(ItemComponentBase):
     EQUIP_SLOT_LEFT_HAND = 0
