@@ -3,9 +3,13 @@
 from item import Item
 from components import *
 import consts
+import copy
 
 
 class Bag(object):
+    """
+    None means empty item.
+    """
     def __init__(self, cells_count):
         self._items = [None] * cells_count
         self._switched_item = None
@@ -13,10 +17,42 @@ class Bag(object):
     def __str__(self):
         return '\t'.join([str(item) for item in self._items])
 
-    def take_half(self):
-        pass  # TODO
+    def take_half(self, index):
+        """
+        return item with half count.
+            eg. 5 apples, return 2 apples.
+                1 apple, return 1 apple.
+                None item, return None.
+        :param index:
+        :return:
+        """
+        item = self.get_item_at(index)
+        if not item:
+            return None
+        stackable = item.get_stackable()
+        if stackable:
+            total_count = stackable.get_count()
+            if total_count == 1:
+                self._set_item(index, None)
+                return item
+            half_count = int(total_count / 2)
+            stackable.change_count(-half_count)
+            new_item = copy.deepcopy(item)
+            new_item.get_stackable().set_count(half_count)
+            return new_item
+        else:
+            self._set_item(index, None)
+            return item
 
     def create_add_new_item(self, name, count=1):
+        """
+        Create an item, and try my best to put it into the bag.
+        The remained part that cannot be put into the bag, will be ignored.
+        It's mainly for debug purpose.
+        :param name:
+        :param count:
+        :return:
+        """
         item = Item.create_by_name(name)
         stackable = item.get_stackable()
         if stackable:
@@ -26,7 +62,18 @@ class Bag(object):
         return self.put_item(item)
 
     def get_switched_item(self):
-        return self._switched_item
+        """
+        meant to be used by code outside this class.
+        used to get last item, and clean the record.
+        :return:
+        """
+        res = self._switched_item
+        self._switched_item = None
+        return res
+
+    def set_switched_item(self, item):
+        assert not self._switched_item, "take care of switch item please"
+        self._switched_item = item
 
     def allow_item(self, item, index):
         """
@@ -55,20 +102,22 @@ class Bag(object):
         """
         just take away the item
         """
-        item = self.get_item_at(index)
         self._set_item(index, None)
-        return item
+        return self.get_switched_item()
 
     def _set_item(self, index, item):
         """
-        never set item with self._items[index] = item, but use this function.
+        Never set item with self._items[index] = item, but use this function.
+        This function will set the original item at this index as switched-item,
+            and you should use get_switched_item() to get this item.
         :param index:
         :param item:
         :return:
         """
-        self._switched_item = self._items[index]
-        if self._switched_item:
-            self._switched_item.on_taken_from_bag(self)
+        switched_item = self._items[index]
+        if switched_item:
+            switched_item.on_taken_from_bag(self)
+            self.set_switched_item(switched_item)
         if item:
             item.on_put_into_bag(self)
         self._items[index] = item
@@ -133,10 +182,17 @@ class Bag(object):
         self._items.sort(key=lambda (item): item.get_category())
         self._items.extend([None] * (items_count - len(self._items)))
 
+    def cleanup_merge_by_name(self):
+        # TODO sort by name firstly, then merge items with the same name, and finally sort again.
+        raise RuntimeError("not implemented yet!")
+
     def on_save(self):
         data = []
         for item in self._items:
-            item_data =  item.on_save()
+            if not item:
+                data.append(None)
+                continue
+            item_data = item.on_save()
             assert item_data != None, 'item[%s].on_save() returns None' % item.get_name()
             data.append((item.get_name(), item_data))
         return data
@@ -144,6 +200,8 @@ class Bag(object):
     def on_load(self, data):
         for i in range(len(data)):
             item_data = data[i]
+            if not item_data:
+                continue
             item = Item.create_by_name(item_data[0])
             item.on_load(item_data[1])
             self._items[i] = item
@@ -166,7 +224,51 @@ class BagTest(unittest.TestCase):
         "axe": {},
     }
 
+    def test_save_load(self):
+        Item.set_items_config(self.items_config)
+        bag = Bag(5)
+        bag.create_add_new_item("apple", 3)
+        apple = Item.create_by_name("apple", 4)
+        apple.get_component(ItemPerishable).set_percentage(0.88)
+        bag.put_item_at(1, apple)
+        bag.create_add_new_item("apple", 4)
+        data = bag.on_save()
+
+        bag = Bag(5)
+        bag.on_load(data)
+        self.assertEqual(bag.get_item_at(0).get_count(), 5)
+        self.assertEqual(bag.get_item_at(1).get_count(), 5)
+        self.assertEqual(bag.get_item_at(2).get_count(), 1)
+        self.assertAlmostEqual(bag.get_item_at(1).get_component(ItemPerishable).get_percentage(), 0.904)
+
+    def test_cleanup(self):
+        Item.set_items_config(self.items_config)
+        bag = Bag(5)
+        bag.create_add_new_item("apple", 4)
+        bag.create_add_new_item("apple", 3)
+        bag.create_add_new_item("apple", 4)
+        self.assertEqual(bag.get_item_at(0).get_count(), 5)
+        self.assertEqual(bag.get_item_at(1).get_count(), 5)
+        self.assertEqual(bag.get_item_at(2).get_count(), 1)
+        bag.create_add_new_item("axe")
+        self.assertEqual(bag.put_item_at(4, Item.create_by_name("apple", 3)), consts.PUT_INTO_EMPTY)
+        bag.take_item_at(0)
+        bag.cleanup_by_name()
+
+    def test_take_half(self):
+        Item.set_items_config(self.items_config)
+        bag = Bag(5)
+        apple = Item.create_by_name("apple", 5)
+        apple.get_component(ItemPerishable).set_percentage(0.88)
+        self.assertEqual(bag.put_item_at(1, apple), consts.PUT_INTO_EMPTY)
+        half_item = bag.take_half(1)
+        self.assertEqual(half_item.get_count(), 2)
+        half_item.get_component(ItemPerishable).set_percentage(0.77)
+        self.assertEqual(bag.get_item_at(1).get_count(), 3)
+        self.assertAlmostEqual(bag.get_item_at(1).get_component(ItemPerishable).get_percentage(), 0.88)
+
     def test_perish_merge(self):
+        # TEST1
         bag = Bag(5)
         Item.set_items_config(self.items_config)
         c1, p1, c2, p2 = 3, 0.5, 2, 0.8
@@ -181,7 +283,25 @@ class BagTest(unittest.TestCase):
         self.assertEqual(bag.put_item_at(1, apple), consts.PUT_MERGE_TOTALLY)
 
         self.assertAlmostEqual(bag.get_item_at(1).get_component(ItemPerishable).get_percentage(), p1*c1/c+p2*c2/c)
-        logging.warn("final bag: %s", str(bag))
+
+
+        # TEST 2
+        bag = Bag(5)
+        Item.set_items_config(self.items_config)
+
+        c1, p1, c2, p2 = 3, 0.5, 3, 0.8
+        c = c1 + 2
+
+        apple = Item.create_by_name("apple", c1)
+        apple.get_component(ItemPerishable).set_percentage(p1)
+        self.assertEqual(bag.put_item_at(1, apple), consts.PUT_INTO_EMPTY)
+
+        apple = Item.create_by_name("apple", c2)
+        apple.get_component(ItemPerishable).set_percentage(p2)
+        self.assertEqual(bag.put_item_at(1, apple), consts.PUT_MERGE_PARTIALLY)
+
+        self.assertAlmostEqual(bag.get_item_at(1).get_component(ItemPerishable).get_percentage(),
+                               p1 * c1 / c + p2 * 2 / c)
 
     def test_put_item_at(self):
         bag = Bag(5)
@@ -190,42 +310,27 @@ class BagTest(unittest.TestCase):
         self.assertEqual(bag.put_item_at(1, apple), consts.PUT_INTO_EMPTY)
         self.assertEqual(bag.get_items_count(), 1)
 
-        logging.warn("1st bag: %s", str(bag))
-
         apple = Item.create_by_name("apple", 3)
         self.assertEqual(bag.put_item_at(1, apple), consts.PUT_MERGE_PARTIALLY)
-
-        logging.warn("2nd bag: %s", str(bag))
 
         apple = Item.create_by_name("apple", 3)
         apple.get_component(ItemPerishable).set_percentage(0.1)
         self.assertEqual(bag.put_item_at(1, apple), consts.PUT_MERGE_FAILED)
 
-        logging.warn("3rd bag: %s", str(bag))
-
         apple = Item.create_by_name("apple", 3)
         self.assertEqual(bag.put_item(apple), consts.BAG_PUT_TOTALLY)
 
-        logging.warn("4th bag: %s", str(bag))
-
         axe = Item.create_by_name("axe")
         self.assertEqual(bag.put_item_at(1, axe), consts.PUT_SWITCH)
-
-        logging.warn("5th bag: %s", str(bag))
+        bag.get_switched_item()  # must call this after a switch action.
 
         apple = Item.create_by_name("apple", 5)
         self.assertEqual(bag.put_item(apple), consts.BAG_PUT_TOTALLY)
 
-        logging.warn("6th bag: %s", str(bag))
-
         self.assertEqual(bag.take_item_at(1), axe)
-
-        logging.warn("7th bag: %s", str(bag))
 
         apple = Item.create_by_name("apple", 4)
         self.assertEqual(bag.put_item(apple), consts.BAG_PUT_TOTALLY)
-
-        logging.warn("8th bag: %s", str(bag))
 
         apple = Item.create_by_name("apple", 5)
         self.assertEqual(bag.put_item(apple), consts.BAG_PUT_TOTALLY)
@@ -233,8 +338,6 @@ class BagTest(unittest.TestCase):
         self.assertEqual(bag.get_item_at(1).get_count(), 5)
         self.assertEqual(bag.get_item_at(2).get_count(), 5)
         self.assertEqual(bag.get_item_at(3).get_count(), 2)
-
-        logging.warn("9th bag: %s", str(bag))
 
 if __name__ == '__main__':
     unittest.main()
