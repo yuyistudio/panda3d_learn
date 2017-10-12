@@ -1,8 +1,8 @@
 #encoding: utf8
 
-from item import Item
-from components import *
-import consts
+from inventory.common.item import Item
+from inventory.common.components import *
+import inventory.common.consts
 
 
 class Inventory(object):
