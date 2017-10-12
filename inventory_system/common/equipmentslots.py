@@ -28,6 +28,12 @@ class EquipmentSlots(object):
             slots.append('[%s:%s]' % (self._index2name[i], self._bag.get_item_at(i)))
         return '\t'.join(slots)
 
+    def on_save(self):
+        return self._bag.on_save()
+
+    def on_load(self, data):
+        self._bag.on_load(data)
+
     def get_switched_equipment(self):
         return self._bag.get_switched_item()
 
