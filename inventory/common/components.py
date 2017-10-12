@@ -131,6 +131,7 @@ class SingleValueMergeable(BaseItemComponent):
         return 1. * self._value / self._max_value
 
     def set_percentage(self, percentange):
+        assert 0 <= percentange <= 1, 'invalid percentange %s' % percentange
         self._value = self._max_value * percentange
 
 
@@ -138,4 +139,29 @@ class ItemPerishable(SingleValueMergeable):
     def __init__(self, config):
         SingleValueMergeable.__init__(self, config.get("time", 80))  # seconds
 
+
+class ItemEquippable(object):
+    def __init__(self, config):
+        self._equip_slots = config.get('slots', [])
+        assert len(self._equip_slots) == len(set(self._equip_slots)), 'duplicated slot found: `%s`' % self._equip_slots
+        assert self._equip_slots, 'invalid equp slots'
+
+    def get_slots(self):
+        return self._equip_slots
+
+
+class ItemDuration(object):
+    def __init__(self, config):
+        self._max_duration = config.get('duration', 10)
+        self._duration = self._max_duration
+
+    def change(self, delta):
+        self._duration += delta
+        if self._duration > self._max_duration:
+            self._duration = self._max_duration
+        elif self._duration < 0:
+            self._duration = 0
+
+    def is_broken(self):
+        return self._duration <= 0
 

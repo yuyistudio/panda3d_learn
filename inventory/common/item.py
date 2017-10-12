@@ -72,7 +72,7 @@ class Item(object):
 
     def __init__(self, name, category=None):
         self._name = name
-        self._category = category
+        self._category = category or name
         self._components = {}
 
     def get_stackable(self):
