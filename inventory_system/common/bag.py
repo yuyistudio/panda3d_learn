@@ -17,7 +17,26 @@ class Bag(object):
     def __str__(self):
         return '\t'.join([str(item) for item in self._items])
 
-    def take_half(self, index):
+    def transform_to_bag(self, index, dest_bag):
+        if not dest_bag:
+            return consts.BAG_PUT_FAILED
+        item = self.get_item_at(index)
+        if not item:
+            return consts.BAG_PUT_FAILED
+        res = dest_bag.add_item(item)
+        if res == consts.BAG_PUT_TOTALLY:
+            self.take_item_at(index)
+        return res
+
+    def transform_all_to_bag(self, dest_bag):
+        """
+        :param dest_bag:
+        :return: macro BAG_PUT_**
+        """
+        for i in range(len(self._items)):
+            self.transform_to_bag(i, dest_bag)
+
+    def take_half(self, index, max_count=99999):
         """
         return item with half count.
             eg. 5 apples, return 2 apples.
@@ -36,6 +55,8 @@ class Bag(object):
                 self._set_item(index, None)
                 return item
             half_count = int(total_count / 2)
+            if half_count > max_count:
+                half_count = max_count
             stackable.change_count(-half_count)
             new_item = copy.deepcopy(item)
             new_item.get_stackable().set_count(half_count)
@@ -51,7 +72,7 @@ class Bag(object):
         It's mainly for debug purpose.
         :param name:
         :param count:
-        :return:
+        :return: return macro BAG_PUT_**
         """
         item = Item.create_by_name(name)
         stackable = item.get_stackable()
@@ -225,6 +246,27 @@ class BagTest(unittest.TestCase):
         },
         "axe": {},
     }
+
+    def test_sibling_bag(self):
+        Item.set_items_config(self.items_config)
+        bag = Bag(5)
+        apple = Item.create_by_name("apple", 3)
+        bag.add_item(apple)
+        axe = Item.create_by_name("axe")
+        bag.add_item(axe)
+
+        bag2 = Bag(5)
+        bag2.create_add_new_item("axe")
+        bag2.create_add_new_item("apple")
+
+        self.assertEqual(bag.get_item_at(0), apple)
+        self.assertEqual(bag.get_item_at(1), axe)
+
+        bag.transform_all_to_bag(bag2)
+
+        self.assertEqual(bag2.get_item_at(1).get_count(), 4)
+        self.assertEqual(bag2.get_item_at(1).get_name(), "apple")
+        self.assertEqual(bag2.get_item_at(2), axe)
 
     def test_save_load(self):
         Item.set_items_config(self.items_config)

@@ -22,8 +22,8 @@ class Inventory(object):
     All actions with inventory, should perform with Inventory.instance.
     """
     instance = None
+
     def __init__(self, items_config):
-        assert not Inventory.instance, "duplicated inventory"
         Inventory.instance = self
 
         # init global resources
@@ -31,6 +31,7 @@ class Inventory(object):
 
         # initial state
         self._bag_enabled = False
+        self._mouse_item = None
 
         # create bags
         self._item_bar = Bag(17)
@@ -43,10 +44,30 @@ class Inventory(object):
         }
 
     def __str__(self):
-        lst = []
+        lst = ["mouse\t%s" % self._mouse_item]
         for k, v in self._bags.iteritems():
             lst.append("%s\t%s" % (k, v))
         return '\n'.join(lst)
+
+    def get_equipment_slots(self):
+        """
+        :return: instance of EquipmentSlots()
+        """
+        return self._equipment_slots
+
+    def get_bag(self):
+        """
+        :return: instance of Bag()
+        """
+        if self._bag_enabled:
+            return self._bag
+        return None
+
+    def get_item_bar(self):
+        """
+        :return: instance of Bag()
+        """
+        return self._item_bar
 
     def get(self, name):
         """
@@ -71,7 +92,8 @@ class Inventory(object):
             return res
         return self._bag.add_item(item)
 
-    def create_item(self, name, count=1):
+    @staticmethod
+    def create_item(name, count=1):
         return Item.create_by_name(name, count)
 
     def on_save(self):
@@ -81,13 +103,21 @@ class Inventory(object):
             "bag": self._bag.on_save(),
             "bag_enabled": self._bag_enabled,
         }
+        if self._mouse_item:
+            data["mouse_item"] = (self._mouse_item.get_name(), self._mouse_item.on_save())
+        else:
+            data["mouse_item"] = None
         return data
 
     def on_load(self, data):
         self._item_bar.on_load(data['item_bar'])
         self._equipment_slots.on_load(data['equipment_slots'])
         self._bag.on_load(data['bag'])
-        self._bag_enabled = data['_bag_enabled']
+        self._bag_enabled = data['bag_enabled']
+        mouse_item_data = data['mouse_item']
+        if mouse_item_data:
+            self._mouse_item = Inventory.create_item(mouse_item_data[0])
+            self._mouse_item.on_load(mouse_item_data[1])
 
     def open_box(self, box):
         assert not self._opened_box, "cannot open two boxes at the same time"
@@ -96,13 +126,69 @@ class Inventory(object):
     def close_box(self):
         self._opened_box = None
 
-    def _transform(self, src_bag, index, dest_bag):
-        # TODO transform clicked to another bag.
-        pass
+    def take_all_from_box(self):
+        assert self._opened_box
+        self._opened_box.transform_all_to_bag(self._item_bar)
+        if self._bag_enabled:
+            self._opened_box.transform_all_to_bag(self._bag)
+
+    def get_mouse_item(self):
+        return self._mouse_item
+
+    def set_mouse_item(self, item):
+        self._mouse_item = item
+
+    def mouse_click_at(self, bag, index):
+        """
+        Put mouse item into specified slot.
+        :param bag:
+        :param index:
+        :return:
+        """
+        assert bag
+        if self._mouse_item:
+            res = bag.put_item_at(index, self._mouse_item)
+            if res == consts.PUT_FORBIDDEN\
+                    or res == consts.PUT_MERGE_FAILED\
+                    or res == consts.PUT_SWITCH_FORBIDDEN:
+                return
+            elif res == consts.PUT_INTO_EMPTY\
+                    or res == consts.PUT_MERGE_TOTALLY:
+                self._mouse_item = None
+            elif res == consts.PUT_SWITCH:
+                self._mouse_item = bag.get_switched_item()
+            elif res == consts.PUT_MERGE_PARTIALLY:
+                pass
+        else:
+            # No mosue item.
+            self._mouse_item = bag.take_item_at(index)
+
+    def half_to_mouse(self, bag, index):
+        """
+        Take half of the item clicked.
+        :return: True if there's changes, else False.
+        """
+        assert bag
+        clicked_item = bag.get_item_at(index)
+        if not clicked_item:
+            return False
+        if not self._mouse_item:
+            self._mouse_item = bag.take_half(index)
+            return True
+        if not self._mouse_item.get_stackable() or self._mouse_item.get_name() != clicked_item.get_name():
+            return False
+        remained = self._mouse_item.get_stackable().get_remained_capacity()
+        half_item = bag.take_half(index, remained)
+        if not half_item:
+            return False
+        res = self._mouse_item.on_merge_with(half_item)
+        assert res == consts.PUT_MERGE_TOTALLY
+        return True
 
 
 import unittest
 import logging
+
 class InventoryTest(unittest.TestCase):
     items_config = {
         "apple": {
@@ -113,12 +199,47 @@ class InventoryTest(unittest.TestCase):
                 "time": 80,
             },
         },
-        "axe": {},
+        "axe": {
+            "equippable": {
+                "slots": ["right_hand"],
+            },
+            "duration": {},
+        },
     }
+
     def test_storage(self):
         inv = Inventory(self.items_config)
         inv.add_item(inv.create_item("apple", 4))
-        logging.warn(inv)
+        axe = Inventory.create_item("axe")
+        inv.get_equipment_slots().equip(axe)
+        data = inv.on_save()
+
+        Inventory.instance = None
+        inv = Inventory(self.items_config)
+        inv.on_load(data)
+        self.assertNotEqual(inv.get_equipment_slots().get_equipment("right_hand"), None)
+        self.assertEqual(inv.get_item_bar().get_item_at(0).get_name(), "apple")
+
+    def test_mouse_item(self):
+        inv = Inventory(self.items_config)
+        inv.add_item(inv.create_item("apple", 4))
+        axe = Inventory.create_item("axe")
+        inv.add_item(axe)
+        self.assertEqual(inv.get_item_bar().get_item_at(1), axe)
+        inv.mouse_click_at(inv.get_item_bar(), 0)
+        self.assertEqual(inv.get_mouse_item().get_name(), "apple")
+        inv.mouse_click_at(inv.get_item_bar(), 1)
+        self.assertEqual(inv.get_mouse_item().get_name(), "axe")
+        inv.mouse_click_at(inv.get_item_bar(), 1)
+        self.assertEqual(inv.get_mouse_item().get_name(), "apple")
+        inv.mouse_click_at(inv.get_item_bar(), 2)
+        self.assertEqual(inv.get_mouse_item(), None)
+        inv.half_to_mouse(inv.get_item_bar(), 2)
+        self.assertEqual(inv.get_mouse_item().get_name(), "apple")
+        self.assertEqual(inv.get_mouse_item().get_count(), 2)
+        remained = inv.get_item_bar().get_item_at(2)
+        self.assertEqual(remained.get_name(), "apple")
+        self.assertEqual(remained.get_count(), 2)
 
 
 if __name__ == '__main__':

@@ -93,7 +93,9 @@ class Item(object):
         return self._name
 
     def add_component(self, component_name, component_config):
-        component_class = name2component_class[component_name]
+        component_class = name2component_class.get(component_name)
+        if not component_class:
+            raise RuntimeError("invalid component name: %s" % component_name)
         key = component_class
         if key in self._components:
             raise RuntimeError("duplicated component: %s" % key)
