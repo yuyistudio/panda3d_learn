@@ -171,7 +171,7 @@ class Bag(object):
         """
         put item into the specified cell.
         :param index:
-        :param item:
+        :param item: cannot be None.
         :return: one of the macros PUT_***
         """
         assert item, 'cannot put empty item `%s`' % item
