@@ -15,6 +15,10 @@ class BaseItemComponent(object):
         pass
 
     def on_update(self, dt):
+        """
+        :param dt: In seconds. There's no garentee about how much time dt is, maybe 1 minute, 1 hour or even 1 year.
+        :return: True if the item this component belonged to should be removed, otherwise None of False.
+        """
         pass
 
     def on_save(self):
@@ -116,6 +120,9 @@ class SingleValueMergeable(BaseItemComponent):
         self._value = max_value
         self._max_value = max_value
 
+    def set_value(self, value):
+        self._value = value
+
     def get_value(self):
         return self._value
 
@@ -145,6 +152,10 @@ class SingleValueMergeable(BaseItemComponent):
 class ItemPerishable(SingleValueMergeable):
     def __init__(self, config):
         SingleValueMergeable.__init__(self, config.get("time", 80))  # seconds
+
+    def on_update(self, dt):
+        self._value -= dt
+        return self._value <= 0
 
 
 class ItemEquippable(BaseItemComponent):

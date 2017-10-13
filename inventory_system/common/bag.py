@@ -192,6 +192,12 @@ class Bag(object):
 
         return ori_item.on_merge_with(item)
 
+    def on_update(self, dt):
+        for i in range(len(self._items)):
+            item = self._items[i]
+            if item and item.on_update(dt):
+                self._set_item(i, None)
+
     def cleanup_by_name(self):
         items_count = len(self._items)
         self._items = filter(lambda (item): item, self._items)
@@ -382,6 +388,18 @@ class BagTest(unittest.TestCase):
         self.assertEqual(bag.get_item_at(1).get_count(), 5)
         self.assertEqual(bag.get_item_at(2).get_count(), 5)
         self.assertEqual(bag.get_item_at(3).get_count(), 2)
+
+    def test_on_update(self):
+        bag = Bag(5)
+        Item.set_items_config(self.items_config)
+        apple = Item.create_by_name("apple", 3)
+        apple.get_component(ItemPerishable).set_value(3)
+        self.assertEqual(bag.put_item_at(1, apple), consts.PUT_INTO_EMPTY)
+        self.assertEqual(bag.get_item_at(1), apple)
+        bag.on_update(2)
+        self.assertEqual(bag.get_item_at(1), apple)
+        bag.on_update(2)
+        self.assertEqual(bag.get_item_at(1), None)
 
 if __name__ == '__main__':
     unittest.main()
