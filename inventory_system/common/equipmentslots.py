@@ -49,6 +49,17 @@ class EquipmentSlots(object):
             return None
         return self._bag.take_item_at(idx)
 
+    def take_equipment_at(self, idx):
+        return self._bag.take_item_at(idx)
+
+    def put_equip_at(self, index, item):
+        """
+        :param index:
+        :param item: cannot be None
+        :return: macro PUT_*
+        """
+        return self._bag.put_item_at(index, item)
+
     def equip(self, equip_item):
         equippable = equip_item.get_component(ItemEquippable)
         if not equippable:
