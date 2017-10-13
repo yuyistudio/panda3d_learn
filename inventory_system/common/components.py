@@ -62,6 +62,9 @@ class ItemStackable(BaseItemComponent):
     def get_count(self):
         return self._count
 
+    def get_remained_capacity(self):
+        return self._max_count - self._count
+
     def get_max_count(self):
         return self._max_count
 
@@ -144,9 +147,9 @@ class ItemPerishable(SingleValueMergeable):
         SingleValueMergeable.__init__(self, config.get("time", 80))  # seconds
 
 
-class ItemEquippable(object):
+class ItemEquippable(BaseItemComponent):
     def __init__(self, config):
-        self._equip_slots = config.get('slots', [])
+        self._equip_slots = config.get('slots', ["right_hand"])
         assert len(self._equip_slots) == len(set(self._equip_slots)), 'duplicated slot found: `%s`' % self._equip_slots
         assert self._equip_slots, 'invalid equp slots'
 
@@ -154,7 +157,7 @@ class ItemEquippable(object):
         return self._equip_slots
 
 
-class ItemDuration(object):
+class ItemDuration(BaseItemComponent):
     def __init__(self, config):
         self._max_duration = config.get('duration', 10)
         self._duration = self._max_duration
