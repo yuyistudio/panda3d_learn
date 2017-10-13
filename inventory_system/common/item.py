@@ -38,6 +38,9 @@ class Item(object):
         """
         Item._items_config = items_config
 
+    def on_update(self, dt):
+        return any([c.on_update(dt) for c in self._components.itervalues()])
+
     @staticmethod
     def get_item(self, name, count):
         item = Item.create_by_name("apple")
