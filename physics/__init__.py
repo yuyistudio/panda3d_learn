@@ -1,9 +1,9 @@
 #encoding: utf8
 
-from panda3d.ode import *
 from panda3d.core import *
 from panda3d.bullet import *
-import variable
+from variable.global_vars import G
+import config
 
 
 class PhysicsWorld(object):
@@ -20,23 +20,22 @@ class PhysicsWorld(object):
     instance = None
     MASS_IFINITE = 0
     COLLISION_EVENT_NAME = "__ODE_COLLISION_EVENT__"
-    def __init__(self, debug=True):
+
+    def __init__(self, debug=False):
         if PhysicsWorld.instance:
             raise RuntimeError("duplicated physics world")
         PhysicsWorld.instance = self
-        self.render = variable.show_base.render
-        self.render = variable.show_base.render
         self.world = BulletWorld()
         self.world.setGravity(Vec3(0, 0, -9.81))
         if debug:
             debugNode = BulletDebugNode("debug_bullet")
             self.world.setDebugNode(debugNode)
             debugNode.showWireframe(True)
-            debugNp = self.render.attachNewNode(debugNode)
+            debugNp = G.render.attachNewNode(debugNode)
             debugNp.show()
 
-    def addBoxCollider(self, box_np, mass, bit_mask=variable.BIT_MASK_OBJECT):
-        if variable.SHOW_BOUNDS:
+    def addBoxCollider(self, box_np, mass, bit_mask=config.BIT_MASK_OBJECT):
+        if config.SHOW_BOUNDS:
             box_np.showTightBounds()
 
         bb = box_np.getTightBounds()  # calulcate bounds before any rotation or scale
@@ -63,7 +62,7 @@ class PhysicsWorld(object):
 
         self.world.attachRigidBody(node)
 
-        np = self.render.attachNewNode(node)
+        np = G.render.attachNewNode(node)
         np.setName("physical_box")
         node.setPythonTag("instance", np)
         np.setPos(box_np.getPos())
@@ -73,7 +72,7 @@ class PhysicsWorld(object):
         return np
 
     def addBoxTrigger(self, box_np, bit_mask):
-        if variable.SHOW_BOUNDS:
+        if config.SHOW_BOUNDS:
             box_np.showTightBounds()
 
         bb = box_np.getTightBounds()  # calulcate bounds before any rotation or scale
@@ -101,8 +100,8 @@ class PhysicsWorld(object):
         node = BulletRigidBodyNode('physical_ground_shapes')
         node.addShape(shape)
         node.setFriction(1)
-        node.setIntoCollideMask(variable.BIT_MASK_GROUND)
-        np = self.render.attachNewNode(node)
+        node.setIntoCollideMask(config.BIT_MASK_GROUND)
+        np = G.render.attachNewNode(node)
         np.setName("physical_ground")  # if unset, take the name of its node
         np.setPos(0, 0, 0)
         self.world.attachRigidBody(node)
@@ -113,20 +112,19 @@ class PhysicsWorld(object):
         self.world.doPhysics(dt)
 
     def mouseHit(self, distance=100):
-        mn = variable.show_base.mouseWatcherNode
+        mn = G.mouseWatcherNode
         if not mn.hasMouse():
             return []
-        base = variable.show_base
-        render = base.render
+        render = G.render
 
         # Get from/to points from mouse click
         pMouse = mn.getMouse()
         pFrom = Point3()
         pTo = Point3()
-        base.camLens.extrude(pMouse, pFrom, pTo)
-        pFrom = render.getRelativePoint(base.cam, pFrom)
-        pTo = render.getRelativePoint(base.cam, pTo)
+        G.camLens.extrude(pMouse, pFrom, pTo)
+        pFrom = render.getRelativePoint(G.cam, pFrom)
+        pTo = render.getRelativePoint(G.cam, pTo)
         pTo = pFrom + (pTo - pFrom) .normalized() * distance
 
-        result = self.world.rayTestAll(pFrom, pTo, variable.BIT_MASK_MOUSE)
+        result = self.world.rayTestAll(pFrom, pTo, config.BIT_MASK_MOUSE)
         return result.getHits() or []

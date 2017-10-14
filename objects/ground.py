@@ -2,9 +2,10 @@
 
 import primitive
 from util import trigger
-import variable
+from variable.global_vars import G
+
 
 def create():
-    visual_np = primitive.make_ground(variable.show_base.render)
+    visual_np = primitive.make_ground(G.render)
     visual_np.setTag("type", "ground")
     return visual_np

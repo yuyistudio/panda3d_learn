@@ -1,17 +1,9 @@
-import physics
-import primitive
-
-from panda3d.ai import *
 from panda3d.core import *
-from direct.showbase.ShowBase import ShowBase
-import logging
-from direct.task import Task
-from direct.interval.IntervalGlobal import Sequence
-import light
-import variable
-from util import draw, keyboard
+from variable.global_vars import G
+from util import keyboard
 from script_anim import hero_animation
 from .tool import TOOL_SUBPART, TOOL_ANIM_NAME, HeroTool
+import config
 
 class Hero(object):
     def __init__(self):
@@ -39,12 +31,12 @@ class Hero(object):
         self.anim_np.loop("walk")
         self.anim_np.loop("idle")
 
-        self.physics_np = variable.show_base.physics_world.addBoxCollider(self.anim_np, mass=1, bit_mask=variable.BIT_MASK_HERO)
+        self.physics_np = G.physics_world.addBoxCollider(self.anim_np, mass=1, bit_mask=config.BIT_MASK_HERO)
         self.rigid_body = self.physics_np.node()
         self.physics_np.setTag("type", "hero")
 
-        variable.show_base.accept("b", self.getBored)
-        variable.show_base.accept("n", self.getNotBored)
+        G.accept("b", self.getBored)
+        G.accept("n", self.getNotBored)
         self.boring_anim = "boring"
         self.anim_np.setPlayRate(1.1, self.boring_anim)
 

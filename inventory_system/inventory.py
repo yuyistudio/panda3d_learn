@@ -27,7 +27,7 @@ class Inventory(object):
     def __init__(self, items_config):
         Inventory.instance = self
 
-        # init global resources
+        # init_global_vars global resources
         Item.set_items_config(items_config)
 
         # initial state

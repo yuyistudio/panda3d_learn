@@ -1,7 +1,9 @@
 #encoding: utf8
 
 from panda3d.core import *
-import variable
+from variable.global_vars import G
+import config
+
 
 def init(render):
     render.setShaderAuto()
@@ -27,7 +29,7 @@ def add_directional(parent_np):
     light.setShadowCaster(True)
     light.setColor(LVector4(1, 1, 1, 1))
     light.getLens(0).setFilmSize(50, 50)  # 设置光照范围
-    if variable.SHOW_LIGHT_FRUSTUM:
+    if config.SHOW_LIGHT_FRUSTUM:
         light.showFrustum()
     return light_np
 
@@ -35,7 +37,7 @@ def add_spot(parent_np):
     light = parent_np.attachNewNode(Spotlight("Spot"))
     light.node().setScene(parent_np)
     light.node().setShadowCaster(True)
-    if variable.SHOW_LIGHT_FRUSTUM:
+    if config.SHOW_LIGHT_FRUSTUM:
         light.node().showFrustum()
     light.node().getLens().setFov(40)
     light.node().getLens().setNearFar(10, 100)

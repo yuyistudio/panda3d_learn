@@ -1,9 +1,7 @@
 # -*-coding:utf-8-*-
 
 from panda3d.core import *
-from panda3d.ode import OdePlaneGeom
-import physics
-import variable
+from variable.global_vars import G
 
 def make_ground(parent_np):
     # Add a plane to collide with
@@ -18,4 +16,4 @@ def make_ground(parent_np):
     card_np = ground.attachNewNode(card)
     card_np.look_at(0, 0, -1)
 
-    return variable.show_base.physics_world.addGround(ground)
+    return G.physics_world.addGround(ground)
