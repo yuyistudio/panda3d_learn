@@ -1,7 +1,7 @@
 #encoding: utf8
 
 from panda3d.core import *
-import variable
+from variable.global_vars import G
 from direct.actor.Actor import Actor
 
 def load_hero():
@@ -14,6 +14,6 @@ def load_hero():
         tex.set_magfilter(Texture.FT_nearest)
         tex.set_minfilter(Texture.FT_linear)
     np.set_name("hero_actor")
-    np.reparent_to(variable.show_base.render)
+    np.reparent_to(G.render)
 
     return np
