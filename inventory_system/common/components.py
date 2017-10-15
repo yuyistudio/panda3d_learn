@@ -4,44 +4,17 @@
 the class,whose name is started with `Item`, will be used as ItemComponent.
 """
 
-# If there's nothing to be saved, then return NO_STORAGE flag, rather than None.
-# If on_save() forgets to return its data, then None is returned,
-# thus we can identify this error immediately.
-NO_STORAGE = "__NO_STORAE__"
+from entity_system.base_component import BaseComponent
 
 
-class BaseItemComponent(object):
+class BaseItemComponent(BaseComponent):
     def __init__(self):
-        pass
+        BaseComponent.__init__(self)
 
-    def on_update(self, dt):
-        """
-        :param dt: In seconds. There's no garentee about how much time dt is, maybe 1 minute, 1 hour or even 1 year.
-        :return: True if the item this component belonged to should be removed, otherwise None of False.
-        """
-        pass
 
-    def on_save(self):
-        return NO_STORAGE
-
-    def on_load(self, data):
-        """
-        :param data: the value returned by onSave
-        :return:
-        """
-        pass
-
-    def on_left_click(self):
-        pass
-
-    def on_right_click(self):
-        pass
-
-    def on_wheel(self, amount):
-        pass
-
-    def on_key(self, key):
-        pass
+class BaseMergeableComponent(BaseItemComponent):
+    def __init__(self):
+        BaseItemComponent.__init__(self)
 
     def get_merge_value(self):
         """
@@ -57,6 +30,8 @@ class BaseItemComponent(object):
 
 
 class ItemStackable(BaseItemComponent):
+    name = 'stackable'
+
     def __init__(self, config):
         BaseItemComponent.__init__(self)
         max_count = config.get("max_count", 10)
@@ -107,6 +82,8 @@ class Nutrition(object):
 
 
 class ItemEdible(_SingleCustomValue):
+    name = 'edible'
+
     def __init__(self, config):
         _SingleCustomValue.__init__(self, Nutrition(config.get("food", 30), config.get("sanity", 3)))
 
@@ -114,9 +91,9 @@ class ItemEdible(_SingleCustomValue):
         return self.get_value()
 
 
-class SingleValueMergeable(BaseItemComponent):
+class SingleValueMergeable(BaseMergeableComponent):
     def __init__(self, max_value):
-        BaseItemComponent.__init__(self)
+        BaseMergeableComponent.__init__(self)
         self._value = max_value
         self._max_value = max_value
 
@@ -150,6 +127,8 @@ class SingleValueMergeable(BaseItemComponent):
 
 
 class ItemPerishable(SingleValueMergeable):
+    name = 'perishable'
+
     def __init__(self, config):
         SingleValueMergeable.__init__(self, config.get("time", 80))  # seconds
 
@@ -159,6 +138,8 @@ class ItemPerishable(SingleValueMergeable):
 
 
 class ItemEquippable(BaseItemComponent):
+    name = 'equippable'
+
     def __init__(self, config):
         self._equip_slots = config.get('slots', ["right_hand"])
         assert len(self._equip_slots) == len(set(self._equip_slots)), 'duplicated slot found: `%s`' % self._equip_slots
@@ -169,6 +150,8 @@ class ItemEquippable(BaseItemComponent):
 
 
 class ItemDuration(BaseItemComponent):
+    name = 'duration'
+
     def __init__(self, config):
         self._max_duration = config.get('duration', 10)
         self._duration = self._max_duration
