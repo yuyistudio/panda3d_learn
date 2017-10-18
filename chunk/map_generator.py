@@ -27,3 +27,37 @@ class DefaultRandomMapGenerator(object):
                 }
             }
 
+
+class TilesOnlyMapGenerator(object):
+    def get(self, r, c):
+        return {
+            'tile': {
+                'name': 'dirt',
+            }
+        }
+
+
+class DefaultObject(object):
+    def __init__(self, name, x, y):
+        self._name, self._x, self._y = name, x, y
+
+    def get_pos(self):
+        return self._x, self._y
+
+    def get_name(self):
+        return self._name
+
+    def on_update(self, dt):
+        pass
+
+    def need_update(self):
+        return True
+
+    def on_unload(self):
+        pass
+
+
+class DefaultEntitySpawner(object):
+    def spawn(self, x, y, config):
+        return DefaultObject(config['name'], x, y)
+

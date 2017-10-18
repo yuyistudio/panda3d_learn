@@ -11,34 +11,8 @@ Chunk的rc函数使用tile_rc.
 """
 
 import chunk
-from map_generator import DefaultRandomMapGenerator
-import logging
+from map_generator import *
 import math
-
-
-class DefaultObject(object):
-    def __init__(self, name, x, y):
-        self._name, self._x, self._y = name, x, y
-
-    def get_pos(self):
-        return self._x, self._y
-
-    def get_name(self):
-        return self._name
-
-    def on_update(self, dt):
-        pass
-
-    def need_update(self):
-        return True
-
-    def on_unload(self):
-        pass
-
-
-class DefaultEntitySpawner(object):
-    def spawn(self, x, y, config):
-        return DefaultObject(config['name'], x, y)
 
 
 class ChunkManager(object):
@@ -96,6 +70,54 @@ class ChunkManager(object):
             for dc in range(-1, 2):
                 yield center_r + dr, center_c + dc
 
+    def xy2world_rc(self, x, y):
+        c = int(math.floor(x / self._chunk_tile_size))
+        r = int(math.floor(y / self._chunk_tile_size))
+        return r, c
+
+    def world_rc2chunk_rc(self, r, c):
+        return r / self._chunk_tile_count, c / self._chunk_tile_count
+
+    def world_rc2inner_rc(self, r, c):
+        return r / self._chunk_tile_count, c / self._chunk_tile_count
+
+    def get_around_tiles(self, x, y, radius):
+        """
+        Warning 该函数性能较差, 不适合经常调用
+        :param x:
+        :param y:
+        :param radius:
+        :return:
+        """
+        world_r, world_c = self.xy2world_rc(x, y)
+        tiles = []
+        for delta_r in range(-radius, radius + 1):
+            for delta_c in range(-radius, radius + 1):
+                key = self.world_rc2chunk_rc(world_r + delta_r, world_c + delta_c)
+                chk = self._chunks.get(key)
+                if not chk:
+                    continue
+                inner_r, inner_c = world_r + delta_r - key[0] * self._chunk_tile_count, world_c + delta_c - key[1] * self._chunk_tile_count
+                tile = chk.get_tile_at(inner_r, inner_c)
+                assert tile
+                tiles.append(tile)
+        return tiles
+
+    def spawn(self, x, y, config):
+        """
+        Spawn an entity at position (x,y) with config.
+        :param x:
+        :param y:
+        :param config:
+        :return:
+        """
+        key = self.xy2rc(x, y)
+        chk = self._chunks.get(key)
+        assert chk, 'pos (%s,%s) not in any chunk' % (x, y)
+        obj = self._spawner.spawn(x, y, config)
+        chk.add_object(obj)
+        return obj
+
     def _load_chunk(self, r, c):
         bx, by = self.rc2xy(r, c)
         new_chunk = chunk.Chunk(self, bx, by, self._chunk_tile_count, self._chunk_tile_size)
@@ -151,7 +173,7 @@ class ChunkManagerTest(unittest.TestCase):
         self.assertEqual(cm.xy2rc(3.2, 4.4), (2, 1))
         self.assertEqual(cm.rc2xy(-1, -2), (-4, -2))
         self.assertEqual(cm.xy2rc(-3.2, -4.4), (-3, -2))
-
+        # 测试chunk数量始终可以保持在9个
         import random
         for i in range(32):
             r = int(random.random() * 1000)
@@ -159,11 +181,47 @@ class ChunkManagerTest(unittest.TestCase):
             cm.on_update(r, c, 0.5)
             self.assertEqual(len(set(cm.get_chunk_ids())), 9)
 
-    def test_update_pos(self):
+    def test_random_update_pos(self):
+        # 测一下能不能随机update位置
         cm = ChunkManager(10, 1)
         import random
         for i in range(100):
             cm.on_update((random.random() - .5) * 100, (random.random() - .5) * 100, 0.5)
+
+    def test_update_pos(self):
+        cm = ChunkManager(10, 1)
+        cm.set_generator(TilesOnlyMapGenerator())
+        cm.on_update(4.5, 3.2, 0.5)
+
+        tiles = cm.get_around_tiles(2.1, 3.1, 1)
+        rc_list = [(t.r, t.c) for t in tiles]
+        self.assertEqual(set(rc_list), set([
+            (4, 1), (4, 2), (4, 3),
+            (3, 1), (3, 2), (3, 3),
+            (2, 1), (2, 2), (2, 3),
+        ]))
+
+        tiles = cm.get_around_tiles(9.1, 0.1, 1)
+        rc_list = [(t.r, t.c) for t in tiles]
+        self.assertEqual(set(rc_list), set([
+            (1, 8), (1, 9), (1, 0),
+            (0, 8), (0, 9), (0, 0),
+            (9, 8), (9, 9), (9, 0),
+        ]))
+
+        self.assertEqual(len(cm.get_around_tiles(2, 3, 1)), 9)
+        self.assertEqual(len(cm.get_around_tiles(2, 3, 3)), 49)
+        self.assertEqual(len(cm.get_around_tiles(5.1, 5.1, 20)), 900)
+
+    def test_spawn(self):
+        cm = ChunkManager(10, 1)
+        cm.set_generator(TilesOnlyMapGenerator())
+        cm.on_update(4.5, 3.2, 0.5)
+        box = cm.spawn(3.2, 13.4, {'name': 'box'})
+        tiles = cm.get_around_tiles(3.2, 13.4, 0)
+        self.assertEqual(len(tiles), 1)
+        self.assertEqual(len(tiles[0].objects), 1)
+        self.assertEqual(box, tiles[0].objects[0])
 
     def test_update(self):
         cm = ChunkManager(10, 1)

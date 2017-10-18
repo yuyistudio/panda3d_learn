@@ -6,8 +6,9 @@ import logging
 
 
 class Tile(object):
-    def __init__(self):
+    def __init__(self, r, c):
         self.objects = []
+        self.r, self.c = r, c
 
 
 class Chunk(object):
@@ -18,9 +19,11 @@ class Chunk(object):
         self._mgr, self._bx, self._by, self._tc, self._ts = \
             mgr, base_x, base_y, tile_count, tile_size
 
+        r, c = self.xy2rc(base_x, base_y)
         self._tiles = []
-        for i in range(tile_count * tile_count):
-            self._tiles.append(Tile())
+        for i in range(tile_count):
+            for j in range(tile_count):
+                self._tiles.append(Tile(r + i, c + j))
         self._frozen_objects = []
 
         self._update_iterator = self._iterate_objects()
@@ -31,6 +34,16 @@ class Chunk(object):
         for tile in self._tiles:
             objects.extend(tile.objects)
         return objects
+
+    def get_tile_at(self, r, c):
+        tile = self._tiles[r * self._tc + c]
+        assert tile, 'rc (%s,%s) not in chunk range' % (r, c)
+        return tile
+
+    def add_object_to(self, obj, r, c):
+        tile = self._tiles[r * self._tc + c]
+        assert tile, 'rc (%s,%s) not in chunk range' % (r, c)
+        tile.objects.append(obj)
 
     def add_object(self, obj):
         pos = obj.get_pos()
