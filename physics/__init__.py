@@ -19,9 +19,8 @@ class PhysicsWorld(object):
     """
     instance = None
     MASS_IFINITE = 0
-    COLLISION_EVENT_NAME = "__ODE_COLLISION_EVENT__"
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=True):
         if PhysicsWorld.instance:
             raise RuntimeError("duplicated physics world")
         PhysicsWorld.instance = self
@@ -109,7 +108,7 @@ class PhysicsWorld(object):
         return np
 
     def onUpdate(self, dt):
-        self.world.doPhysics(dt)
+        self.world.do_physics(dt, 100)
 
     def mouseHit(self, distance=100):
         mn = G.mouseWatcherNode
@@ -117,7 +116,7 @@ class PhysicsWorld(object):
             return []
         render = G.render
 
-        # Get from/to points from mouse click
+        # Get from/to points from _mouse click
         pMouse = mn.getMouse()
         pFrom = Point3()
         pTo = Point3()

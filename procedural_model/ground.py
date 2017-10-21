@@ -34,7 +34,7 @@ class Test(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
         self.np = self.render.attachNewNode(test())
-        tex = self.loader.loadTexture("../images/logo.png")
+        tex = self.loader.loadTexture("assets/images/logo.png")
         print 'texture:', tex
         print 'node path:', self.np
         self.np.setTexture(tex)

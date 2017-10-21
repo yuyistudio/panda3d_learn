@@ -8,8 +8,8 @@ def load_hero():
     anims = ["walk", "pickup", "jump", "idle", "craft", "tool", "boring", "pick", "pickup"]
     anim_mapping = {}
     for aname in anims:
-        anim_mapping[aname] = "blender/hero-%s" % aname
-    np = Actor("blender/hero", anim_mapping)
+        anim_mapping[aname] = "assets/blender/hero-%s" % aname
+    np = Actor("assets/blender/hero", anim_mapping)
     for tex in np.find_all_textures():
         tex.set_magfilter(Texture.FT_nearest)
         tex.set_minfilter(Texture.FT_linear)

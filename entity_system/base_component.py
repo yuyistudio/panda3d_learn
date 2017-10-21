@@ -8,7 +8,7 @@ NO_STORAGE_FLAG = "__NO_STORAE__"
 
 
 class BaseComponent(object):
-    def __init__(self):
+    def on_start(self):
         pass
 
     def on_update(self, dt):
@@ -29,6 +29,9 @@ class BaseComponent(object):
         :param data: the value returned by onSave
         :return:
         """
+        pass
+
+    def destroy(self):
         pass
 
     def on_left_click(self):

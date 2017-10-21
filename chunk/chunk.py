@@ -3,6 +3,7 @@
 
 import math
 import logging
+from panda3d.core import Vec3
 
 
 class Tile(object):
@@ -47,7 +48,7 @@ class Chunk(object):
 
     def add_object(self, obj):
         pos = obj.get_pos()
-        r, c = self.xy2rc(pos[0], pos[1])
+        r, c = self.xy2rc(pos.getX(), pos.getY())
         assert self.rc_in_chunk(r, c), '%s , %s , %s,%s' % ((r, c), pos, self._bx, self._by)
         tile = self._tiles[r * self._tc + c]
         tile.objects.append(obj)
@@ -99,7 +100,7 @@ class Chunk(object):
                 for obj in tile.objects:
                     obj.on_update(self._iterator_dt)
                     pos = obj.get_pos()
-                    if self.xy_in_chunk(pos[0], pos[1]):
+                    if self.xy_in_chunk(pos.getX(), pos.getY()):
                         remained_objects.append(obj)
                     else:
                         self._frozen_objects.append(obj)

@@ -17,9 +17,9 @@ class Inventory(object):
     Consists of several bags that are carried on by the hero.
     There bags are identified by names.
     This class also provide convenient method to interact with opened bags(such box or chest on the ground),
-        but these box doesn't belong to this inventory.
+        but these box doesn't belong to this _inventory.
 
-    All actions with inventory, should perform with Inventory.instance.
+    All actions with _inventory, should perform with Inventory.instance.
     """
     instance = None
     _mouse_item = None
@@ -44,7 +44,7 @@ class Inventory(object):
         }
 
     def __str__(self):
-        lst = ["mouse\t%s" % Inventory._mouse_item]
+        lst = ["_mouse\t%s" % Inventory._mouse_item]
         for k, v in self._bags.iteritems():
             lst.append("%s\t%s" % (k, v))
         return '\n'.join(lst)
@@ -81,7 +81,7 @@ class Inventory(object):
 
     def add_item(self, item):
         """
-        Give an item to inventory, add it to the item-bar or add it to the bag.
+        Give an item to _inventory, add it to the item-bar or add it to the bag.
         :param item:
         :return: one macro of BAG_PUT_**
         """
@@ -150,7 +150,7 @@ class Inventory(object):
     @staticmethod
     def mouse_click_at_bag(bag, index):
         """
-        Put mouse item into item-bar or backpack.
+        Put _mouse item into item-bar or backpack.
         :param bag:
         :param index:
         :return:

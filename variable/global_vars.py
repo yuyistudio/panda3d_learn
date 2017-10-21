@@ -13,7 +13,6 @@ class GlobalVariable(ShowBase):
     """
     def __init__(self):
         ShowBase.__init__(self)
-        # initialization
         self.disableMouse()
         self.render.setAntialias(AntialiasAttrib.MMultisample)
 
@@ -37,7 +36,9 @@ class GlobalVariable(ShowBase):
 
 G = GlobalVariable()
 
-# Add some necessary global instances.
+
+# 添加一些全局遍历。
+# 不在G的实例化时直接赋值的原因是，这些全局遍历也依赖于G进行初始化。
 
 from util import trigger
 import physics
