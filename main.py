@@ -1,44 +1,35 @@
-from variable.global_vars import G
-from panda3d.core import *
-from objects import ground, box, lights
+#encoding: utf8
+
+from common import game_states
+import gui_system
 from hero import create
+from panda3d.core import *
 from panda3d.core import loadPrcFile
-from operation import operation
+from storage_system import storage_manager
+from objects import ground, box, lights
+from util import states
+from variable.global_vars import G
 loadPrcFile("./config.prc")
 
 
 class Game(object):
     def __init__(self):
-        G.taskMgr.add(self.ode_physics_task, "physics")
+        G.state_mgr = states.StatesManager("menu.menu")
+        G.state_mgr.add_state(game_states.MainMenuState())
+        G.state_mgr.add_state(game_states.GamePlayState())
+        G.state_mgr.add_state(game_states.GamePauseState())
 
-        # create objects
-        self.hero = create.Hero()
-        self.operation = operation.Operation(self.hero)
+        G.gui_mgr = gui_system.GUIManager()
 
-        for i in range(2):
-            for j in range(2):
-                b = box.create(Vec3((i*2, j*2, 0)))
-                b.setName("box(%d,%d)" % (i, j))
+        G.storage_mgr = storage_manager.StorageManager()
 
-        ground.create()
-        lights.create()
-
-        # start
-        G.taskMgr.add(self.onUpdate, "onUpdate")
+        G.taskMgr.add(self.main_loop, name="main_loop")
         G.run()
 
-    def onUpdate(self, task):
-        dt = G.taskMgr.globalClock.getDt()
-        self.hero.onUpdate(dt)
-        self.hero.lookAt(self.operation.look_at_target)
-        return task.cont
-
-    def ode_physics_task(self, task):
+    def main_loop(self, task):
         dt = G.taskMgr.globalClock.getDt()
         G.physics_world.onUpdate(dt)
-        # camera control
-        G.cam.set_pos(self.hero.getNP().get_pos() + Vec3(0, -20, 20))
-        G.cam.look_at(self.hero.getNP())
+        G.state_mgr.on_update(dt)
         return task.cont
 
 

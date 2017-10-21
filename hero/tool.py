@@ -45,7 +45,7 @@ class HeroTool(object):
         self.name2tool = {}
         self.tool_names = 'sword axe'.split()
         for tool_name in self.tool_names:
-            tool_np = G.loader.loadModel("blender/%s" % tool_name)
+            tool_np = G.loader.loadModel("assets/blender/%s" % tool_name)
             ghost_np = G.physics_world.addBoxTrigger(tool_np, config.BIT_MASK_TOOL)
             self.name2tool[tool_name] = ToolInfo(tool_np, ghost_np)
             G.physics_world.world.removeGhost(ghost_np.node())
@@ -85,7 +85,6 @@ class HeroTool(object):
             name = physical_np.getName()
             if self.hit_recorder.already_hit(name):  # tool aren't being used OR has been used already
                 return
-            print 'node:', physical_np
             node.setLinearVelocity((physical_np.getPos() - self.hero.physics_np.getPos()).normalized() * 5)
             print 'hit:', name
 

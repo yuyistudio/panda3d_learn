@@ -1,6 +1,10 @@
 #encoding: utf8
 
 
+import base_components
+from panda3d.core import Vec3
+
+
 name2component_class = {}
 
 
@@ -11,14 +15,28 @@ def get_component_name(com_type):
 class BaseEntity(object):
     _config = None
     CONFIG_NOT_FOUND_FLAG = -1
+    DEFAULT_POS = Vec3(0, 0, 0)
 
     def __str__(self):
-        return self.get_name()
+        return "[Entity:%s]" % self.get_name()
 
-    def __init__(self, name, category=None):
-        self._name = name
-        self._category = category or name
+    def __init__(self, config):
+        self._name = config['name']
+        self._category = config.get('category') or self._name
         self._components = {}
+        self._updating_componets = []
+
+        config = BaseEntity._config.get(self._name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
+        if config == BaseEntity.CONFIG_NOT_FOUND_FLAG:
+            raise RuntimeError("entity not found : %s, config `%s`" % (self._name, BaseEntity._config))
+        for com_name, com_config in config['components'].iteritems():
+            self.add_component(com_name, com_config)
+
+        # call on_start() on each component
+        for com in self._components.itervalues():
+            if com.is_update_overwrite():
+                self._updating_componets.append(com)
+            com.on_start()
 
     @staticmethod
     def register_components(components, ignore_conflict=False):
@@ -51,15 +69,8 @@ class BaseEntity(object):
     def on_update(self, dt):
         return any([c.on_update(dt) for c in self._components.itervalues()])
 
-    @staticmethod
-    def create_by_name(name):
-        config = BaseEntity._config.get(name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
-        if config == BaseEntity.CONFIG_NOT_FOUND_FLAG:
-            raise RuntimeError("entity not found : %s, config `%s`" % (name, BaseEntity._config))
-        entity = BaseEntity(name)
-        for com_name, com_config in config.iteritems():
-            entity.add_component(com_name, com_config)
-        return entity
+    def get_components_of_type(self, target_type):
+        return [com for com_type, com in self._components.iteritems() if isinstance(com, target_type)]
 
     def get_category(self):
         return self._category
@@ -74,7 +85,9 @@ class BaseEntity(object):
         key = component_class
         if key in self._components:
             raise RuntimeError("duplicated component: %s" % key)
-        self._components[key] = component_class(component_config)
+        com = component_class(component_config)
+        com.entity = self
+        self._components[key] = com
 
     def get_component(self, component_type):
         return self._components.get(component_type)
@@ -93,6 +106,16 @@ class BaseEntity(object):
             com_type = name2component_class.get(com_name)
             assert com_type, "unidentified component %s" % com_name
             self.get_component(com_type).on_load(com_data)
+
+
+def register_object_components():
+    coms = []
+    for name, com in vars(base_components).iteritems():
+        if name.startswith("Obj"):
+            coms.append(com)
+    BaseEntity.register_components(coms)
+
+register_object_components()
 
 
 import unittest

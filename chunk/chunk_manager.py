@@ -31,9 +31,23 @@ class ChunkManager(object):
         self._spawner = DefaultEntitySpawner()
 
     def set_spawner(self, spawner):
+        """
+        :param spawner:
+            get(x, y, config)
+        :return:
+        """
         self._spawner = spawner
 
     def set_generator(self, generator):
+        """
+        :param generator:
+            get(r,c)
+                return {
+                    'tile':{'name':'xx'},
+                    'object':{'name':'xx'}
+                }
+        :return:
+        """
         self._generator = generator
 
     def __str__(self):
@@ -54,7 +68,7 @@ class ChunkManager(object):
         pos = frozen_object.get_pos()
         key = self.xy2rc(pos[0], pos[1])
         target_chunk = self._chunks.get(key)
-        assert target_chunk != src_chunk, frozen_object.get_pos()
+        # assert target_chunk != src_chunk, frozen_object.get_pos()
         if target_chunk:
             target_chunk.add_object(frozen_object)
             return True
@@ -65,7 +79,7 @@ class ChunkManager(object):
         return c * self._chunk_size, r * self._chunk_size
 
     @staticmethod
-    def _iter_chunks(center_r, center_c):
+    def _iter_chunk_keys(center_r, center_c):
         for dr in range(-1, 2):
             for dc in range(-1, 2):
                 yield center_r + dr, center_c + dc
@@ -130,7 +144,9 @@ class ChunkManager(object):
                 if obj_info:
                     x = (ic + .5) * self._chunk_tile_size
                     y = (ir + .5) * self._chunk_tile_size
-                    new_chunk.add_object(self._spawner.spawn(x, y, obj_info))
+                    new_obj = self._spawner.spawn(x, y, obj_info)
+                    assert new_obj
+                    new_chunk.add_object(new_obj)
         return new_chunk
 
     def _unload_chunk(self, chunk_id):
@@ -146,11 +162,13 @@ class ChunkManager(object):
         :param dt: 单位秒
         :return: None
         """
+        #x = 0
+        #y = 0
         all_keys = set()
         r, c = self.xy2rc(x, y)
         self._center_chunk_id = (r, c)
         # 更新并创建不存在的chunk
-        for (r, c) in self._iter_chunks(r, c):
+        for (r, c) in self._iter_chunk_keys(r, c):
             key = (r, c)
             all_keys.add(key)
             existing_chunk = self._chunks.get(key)

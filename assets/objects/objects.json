@@ -1,0 +1,15 @@
+{
+    "box": {
+        "components": {
+            "inspectable": {
+                "iname": "箱子"
+            },
+            "model": {
+                "model_file": "assets/blender/box.egg",
+                "physics": {
+                    "shape": "box"
+                }
+            }
+        }
+    }
+}

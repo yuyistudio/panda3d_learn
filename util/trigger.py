@@ -1,7 +1,7 @@
 #encoding: utf8
 
 '''
-mouse picker based on ray cast from camera view.
+_mouse picker based on ray cast from camera view.
 collide with specified collide_mask
 '''
 
@@ -18,10 +18,10 @@ class MousePicker(object):
         self.pickerNode.setIntoCollideMask(0)
         self.pickerRay = CollisionRay()
         self.pickerNode.addSolid(self.pickerRay)
-        self.pickerNP.setTag("type", "mouse")
+        self.pickerNP.setTag("type", "_mouse")
         triggers.addCollider(self.pickerNP)
 
-    def onUpdate(self):  # mpos is the position of the mouse on the screen
+    def onUpdate(self):  # mpos is the position of the _mouse on the screen
         if not G.mouseWatcherNode.hasMouse():
             return []
         mpos = G.mouseWatcherNode.getMouse()
@@ -50,7 +50,7 @@ def addCollisionBox(box_np, bit_mask, type_tag='unknown', from_enabled=False, to
     dx, dy, dz = abs(bb[0].getX() - bb[1].getX()),\
                  abs(bb[0].getY() - bb[1].getY()),\
                  abs(bb[0].getZ() - bb[1].getZ())
-    # for mouse pick
+    # for _mouse pick
     cnode = CollisionNode('box_collision')
     '''
      * Create the Box by giving a Center and distances of of each of the sides of
@@ -80,7 +80,7 @@ def addCollisionSegment(node_path, bit_mask, type_tag='unknown', from_enabled=Fa
     dx, dy, dz = abs(bb[0].getX() - bb[1].getX()),\
                  abs(bb[0].getY() - bb[1].getY()),\
                  abs(bb[0].getZ() - bb[1].getZ())
-    # for mouse pick
+    # for _mouse pick
     cnode = CollisionNode('box_collision')
     '''
      * Create the Box by giving a Center and distances of of each of the sides of

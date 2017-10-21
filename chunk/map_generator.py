@@ -3,7 +3,7 @@
 __author__ = 'Leon'
 
 import random
-from util import rand
+from util import random_util
 import sys
 
 
@@ -49,7 +49,7 @@ class PerlinMapGenerator(object):
         self._tpl = {'tile': self._tile}
 
     def get(self, r, c):
-        v = rand.perlin_noise_2d(r, c, 0.13)
+        v = random_util.perlin_noise_2d(r, c, 0.13)
         for item in self._mapping:
             threshold, tile_type = item[0], item[1]
             if v < threshold:

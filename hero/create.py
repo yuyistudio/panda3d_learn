@@ -7,9 +7,9 @@ import config
 
 class Hero(object):
     def __init__(self):
-        self.max_hero_speed = 18
+        self.max_hero_speed = 13
         self.target_hero_speed = 0
-        self.speed_lerp_factor = 3
+        self.speed_lerp_factor = 0.1
         self._setup()
         self.tool = HeroTool(self)
 
@@ -33,6 +33,8 @@ class Hero(object):
 
         self.physics_np = G.physics_world.addBoxCollider(self.anim_np, mass=1, bit_mask=config.BIT_MASK_HERO)
         self.rigid_body = self.physics_np.node()
+        self.rigid_body.setLinearFactor(Vec3(1, 1, 0))
+        self.rigid_body.setAngularFactor(Vec3(0, 0, 1))
         self.physics_np.setTag("type", "hero")
 
         G.accept("b", self.getBored)
@@ -52,6 +54,7 @@ class Hero(object):
         return self.physics_np
 
     def onUpdate(self, dt):
+        self.lookAt(G.game_mgr.operation.look_at_target)
         self._movementControl(dt)
         self.tool.onUpdate(dt)
 
@@ -74,6 +77,7 @@ class Hero(object):
         speed_vector.set_z(0)
         current_speed = speed_vector.length()
         new_speed = current_speed + (self.target_hero_speed - current_speed) * dt * self.speed_lerp_factor
+        new_speed = self.target_hero_speed
         new_v = direction.normalized() * new_speed
         new_v.setZ(current_z)
         self.rigid_body.setLinearVelocity(new_v)
