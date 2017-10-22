@@ -164,6 +164,19 @@ class Chunk(object):
         for obj in self._iter_all_objects():
             obj.set_enabled(enabled)
 
+    def set_enabled_with_yield(self, enabled):
+        self._enabled = enabled
+        if self._ground_geom:
+            if enabled:
+                self._ground_geom.reparent_to(G.render)
+            else:
+                self._ground_geom.detach_node()
+            yield
+        for obj in self._iter_all_objects():
+            obj.set_enabled(enabled)
+            yield
+        yield
+
     def _iter_all_objects(self):
         """
         遍历该chunk内的所有object。包括frozen_objects。

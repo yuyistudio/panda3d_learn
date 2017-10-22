@@ -10,6 +10,7 @@ ChunkManager的rc函数使用chunk_rc.
 Chunk的rc函数使用tile_rc.
 """
 
+import traceback
 import chunk
 from map_generator import *
 import math
@@ -85,7 +86,7 @@ class ChunkManager(object):
         self._center_chunk_id = (0, 0)
         self._generator = DefaultRandomMapGenerator()
         self._spawner = DefaultEntitySpawner()
-        self._cache = LRUCache(1)  # TODO 根据机器内存大小动态设置一个合理的值。
+        self._cache = LRUCache(11)  # TODO 根据机器内存大小动态设置一个合理的值。
 
         self._yielders = []
         self._loading_chunk_keys = []
@@ -289,19 +290,46 @@ class ChunkManager(object):
         }
 
     def _load_chunk(self, r, c):
-        # 从缓存中载入
-        cache_value = self._cache.get((r, c))
-        if cache_value:
-            self._chunks[(r, c)] = cache_value
-            t1 = time.time()
-            cache_value.set_enabled(True)
-            print 'load from cache:', time.time() - t1
-            return cache_value
+        chunk_self = self
+        chunk_key = (r, c)
+        self._loading_chunk_keys.append(chunk_key)
 
-        t1 = time.time()
+        class wrapper(object):
+            def __init__(self, iterator):
+                self._iter = iterator
+
+            def next(self):
+                try:
+                    self._iter.next()
+                except StopIteration, si:
+                    # 确保 _loading_chunk_keys 始终正确
+                    chunk_self._loading_chunk_keys.remove(chunk_key)
+                    raise si
+        return wrapper(self._load_chunk_real(r, c))
+
+    def _load_chunk_real(self, r, c):
+        """
+        :param r:
+        :param c:
+        :return:
+        """
+        yield
+        chunk_key = (r, c)
+
+        # 从缓存中载入
+        cache_value = self._cache.get(chunk_key)
+        if cache_value:
+            self._chunks[chunk_key] = cache_value
+            for _ in cache_value.set_enabled_with_yield(True):
+                yield
+            self._chunks[chunk_key] = cache_value
+            return
+
+        print 'load from scratch: ', r, c
         # 重新载入
         bx, by = self.rc2xy(r, c)
         new_chunk = chunk.Chunk(self, bx, by, self._chunk_tile_count, self._chunk_tile_size)
+        yield
         if self._storage_mgr:
             storage_data = self._storage_mgr.get(str((r, c)))
             if storage_data:
@@ -310,11 +338,15 @@ class ChunkManager(object):
                 assert ground_data
                 ground_np = self._create_ground_from_data(r, c, ground_data)
                 new_chunk.set_ground_geom(ground_np, ground_data)
-                return new_chunk
+                self._chunks[chunk_key] = new_chunk
+                return
+
+        yield
 
         # 生成tile物体
         plane_np, tiles_data = self._new_ground_geom(r, c)
         new_chunk.set_ground_geom(plane_np, tiles_data)
+        yield
 
         # 遍历所有tile生成物体
         br = r * self._chunk_tile_count
@@ -332,13 +364,21 @@ class ChunkManager(object):
                     new_chunk.add_object(new_obj)
                     assert sys.getrefcount(new_obj) == 3  # 确保被正确添加到了chunk中
 
-        print 'load from scatch:', time.time() - t1
-        return new_chunk
+                    yield
+                    if random.random() < .4:  # 进一步减少加载压力
+                        yield
+
+        self._chunks[chunk_key] = new_chunk
 
     def _unload_chunk(self, chunk_id):
+        if chunk_id in self._loading_chunk_keys:
+            #print 'wait for removing:', chunk_id
+            return  # 等待下次unload事件
+
         # 这里有个小坑，不能用 dict[key] = None 这种方式来删除key（在Lua中是可以的）。
         target_chunk = self._chunks[chunk_id]
         target_chunk.set_enabled(False)
+        print 'add to cache:', chunk_id
         cache_key, cache_value = self._cache.add(chunk_id, target_chunk)
         del self._chunks[chunk_id]
         del chunk_id  # 防止误用
@@ -365,8 +405,9 @@ class ChunkManager(object):
             all_keys.add(key)
             existing_chunk = self._chunks.get(key)
             if not existing_chunk:
-                existing_chunk = self._load_chunk(r, c)
-                self._chunks[key] = existing_chunk
+                if (r, c) not in self._loading_chunk_keys:
+                    self._yielders.append(self._load_chunk(r, c))
+                continue
             existing_chunk.on_update(dt)
         # 删除不在附近的chunk
         for chunk_id in self._chunks.keys():
@@ -378,7 +419,7 @@ class ChunkManager(object):
             try:
                 yielder.next()
                 remained_yielders.append(yielder)
-            except:
+            except StopIteration:
                 pass
         self._yielders = remained_yielders
 
