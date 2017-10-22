@@ -15,6 +15,7 @@ class GUIManager(object):
     def __init__(self):
         self._inventory = None
         self._main_menu = None
+        self._game_menu = None
         self._mouse = MouseGUI()
         self._mouse.setItem(None)
         self._mouse.setText(None)
@@ -40,6 +41,23 @@ class GUIManager(object):
 
     def set_main_menu_visible(self, visible):
         self._main_menu.set_visible(visible)
+
+    def set_game_menu_visible(self, visible):
+        self._game_menu.set_visible(visible)
+
+    def create_game_menu(self):
+        self._game_menu = centermenu.CenterMenu([
+            "continue",
+            "save",
+            "exit",
+        ],
+            self._menu_click_handler,
+            item_width=1.1,
+            events=[
+                "game_menu.continue",
+                "game_menu.save",
+                "game_menu.exit",
+            ])
 
     def create_main_menu(self):
         self._main_menu = centermenu.CenterMenu([

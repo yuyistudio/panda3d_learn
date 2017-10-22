@@ -31,15 +31,21 @@ class FloatLerp(object):
 
 
 class LerpVec3(object):
-    def __init__(self, target_pos, lerp_factor):
-        self.pos = target_pos
-        self.target_pos = target_pos
+    def __init__(self, lerp_factor):
+        self.pos = None
+        self.target_pos = None
         self.lerp_factor = lerp_factor
+        self._initialized = False
 
     def set_target(self, target):
+        if not self._initialized:
+            self._initialized = True
+            self.pos = target
         self.target_pos = target
 
     def lerp(self, dt):
+        if not self._initialized:
+            return Vec3(0, 0, 0)
         factor = dt * self.lerp_factor
         x = self.pos.getX() + (self.target_pos.getX() - self.pos.getX()) * factor
         y = self.pos.getY() + (self.target_pos.getY() - self.pos.getY()) * factor

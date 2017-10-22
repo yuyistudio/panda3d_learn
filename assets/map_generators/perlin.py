@@ -10,7 +10,15 @@ from panda3d.core import Vec3
 
 class PerlinMapGenerator(object):
     def __init__(self, debug=False):
-        self._mapping = [(.2, 'grass1'), (.5, 'grass2'), (.7, 'rock1'), (1.01, 'rock2')]
+        self._mapping = [
+            (.3, 'grass1'),
+            (.5, 'grass2'),
+            (.6, 'rock2'),
+            (.65, 'plate'),
+            (.7, 'floor1'),
+            (.74, 'floor2'),
+            (1.01, 'barren'),
+        ]
         if debug:
             self._mapping = [(.4, '@'), (.7, '.'), (.8, '+'), (1.01, 'O')]
 
@@ -24,8 +32,14 @@ class PerlinMapGenerator(object):
             threshold, tile_type = item[0], item[1]
             if v < threshold:
                 self._tile['name'] = tile_type
-                if random.random() < .1:
-                    self._obj_tpl['object'] = {'name': 'box'}
+                if 'grass' in tile_type:
+                    rand_v = random.random()
+                    if rand_v < .02:
+                        self._obj_tpl['object'] = {'name': 'tree'}
+                    elif rand_v < .06:
+                        self._obj_tpl['object'] = {'name': 'twig'}
+                    else:
+                        return self._tpl
                     return self._obj_tpl
                 else:
                     return self._tpl

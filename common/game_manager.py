@@ -22,13 +22,22 @@ class GameManager(object):
         self.chunk_mgr.set_generator(G.config_mgr.get_map_config('perlin')())
         self.chunk_mgr.set_tile_texture(G.config_mgr.get_tile_config('default'))
         self.chunk_mgr.set_spawner(G.spawner)
-        slot = G.storage_mgr.get_or_create_slot_entry('1')
-        slot.load()
-        scene = slot.get_or_create_scene_entry("main_land")
-        self.chunk_mgr.set_storage_mgr(scene)
+
+        self.current_slot = '1'
+        self.current_scene = 'main_land'
+        self.slot = G.storage_mgr.get_or_create_slot_entry(self.current_slot)
+        self.slot.load()
+        G.storage_mgr.save_slots_entry()
+        self.scene = self.slot.get_or_create_scene_entry(self.current_scene)
+        self.slot.save()
+        self.chunk_mgr.set_storage_mgr(self.scene)
 
         self._ground = ground.create()  # TODO remove it
         self._lights = lights.create()  # TODO remove it
+
+    def save_scene(self):
+        self.slot.save()
+        self.scene.save()
 
     def on_update(self, dt):
         self.hero.onUpdate(dt)

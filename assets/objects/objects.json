@@ -11,5 +11,35 @@
                 }
             }
         }
+    },
+    "tree": {
+        "components": {
+            "inspectable": {
+                "iname": "树木"
+            },
+            "model": {
+                "model_file": "assets/blender/tree.egg",
+                "physics": {
+                    "shape": "box"
+                },
+                "scale": 3.7,
+                "collider_scale": 0.2
+            }
+        }
+    },
+    "twig": {
+        "components": {
+            "inspectable": {
+                "iname": "灌木"
+            },
+            "model": {
+                "model_file": "assets/blender/twig.egg",
+                "physics": {
+                    "shape": "box"
+                },
+                "scale": 1.1,
+                "collider_scale": 1
+            }
+        }
     }
 }
