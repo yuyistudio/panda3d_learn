@@ -18,6 +18,20 @@ class BaseComponent(object):
         """
         pass
 
+    def set_enabled(self, enabled):
+        """
+        在游戏世界不再生效.
+        :return:
+        """
+        pass
+
+    def destroy(self):
+        """
+        如果该组件申请了一堆资源，则应该在这里进行释放。
+        :return:
+        """
+        pass
+
     def is_update_overwrite(self):
         return type(self).on_update != BaseComponent.on_update
 
@@ -30,6 +44,9 @@ class BaseComponent(object):
         :return:
         """
         pass
+
+    def get_entity(self):
+        return self._entity_weak_ref()
 
     def destroy(self):
         pass
