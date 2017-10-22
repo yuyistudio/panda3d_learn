@@ -162,7 +162,7 @@ class ChunkManager(object):
     def rc2xy(self, r, c):
         return c * self._chunk_size, r * self._chunk_size
 
-    def _iter_chunk_keys(self, x, y, topn=12):
+    def _iter_chunk_keys(self, x, y, topn=9):
         """
         按照某种规则，返回点(x,y)附近需要载入的方块。
         :param x:
@@ -325,7 +325,6 @@ class ChunkManager(object):
             self._chunks[chunk_key] = cache_value
             return
 
-        print 'load from scratch: ', r, c
         # 重新载入
         bx, by = self.rc2xy(r, c)
         new_chunk = chunk.Chunk(self, bx, by, self._chunk_tile_count, self._chunk_tile_size)
@@ -372,13 +371,11 @@ class ChunkManager(object):
 
     def _unload_chunk(self, chunk_id):
         if chunk_id in self._loading_chunk_keys:
-            #print 'wait for removing:', chunk_id
             return  # 等待下次unload事件
 
         # 这里有个小坑，不能用 dict[key] = None 这种方式来删除key（在Lua中是可以的）。
         target_chunk = self._chunks[chunk_id]
         target_chunk.set_enabled(False)
-        print 'add to cache:', chunk_id
         cache_key, cache_value = self._cache.add(chunk_id, target_chunk)
         del self._chunks[chunk_id]
         del chunk_id  # 防止误用

@@ -3,7 +3,7 @@
 from base_component import BaseComponent
 from variable.global_vars import G
 import config as gconf
-from panda3d.core import Vec3
+from panda3d.core import Vec3, Texture
 
 
 class ObjInspectable(BaseComponent):
@@ -21,17 +21,28 @@ class ObjModel(BaseComponent):
 
     def __init__(self, config):
         model_path = config['model_file']
+        self.scale = config.get('scale', 1.)
+        self.collider_scale = config.get('collider_scale', 1.)
         self.is_static = config.get('static', True)  # TODO 对于静态物体，可以合并模型进行优化. np.flatten_strong()
         loader = G.loader
         box = loader.loadModel(model_path)
         box.setName("box")
         box.reparentTo(G.render)
         self.model_np = box
+        self.model_np.set_scale(self.scale)
+        self.model_np.set_pos(Vec3(0, 0, 0))
+        for tex in self.model_np.find_all_textures():
+            tex.set_magfilter(Texture.FT_nearest)
+            tex.set_minfilter(Texture.FT_linear)
 
         physics_config = config.get('physics')
         self.physical_np = None
         if physics_config:
-            self.physical_np = G.physics_world.addBoxCollider(box, mass=0, bit_mask=gconf.BIT_MASK_OBJECT, reparent=not self.is_static)
+            self.physical_np = G.physics_world.addBoxCollider(
+                box, mass=0, bit_mask=gconf.BIT_MASK_OBJECT,
+                reparent=not self.is_static,
+                scale=self.collider_scale,
+            )
             self.physical_np.setTag("type", "box")
             body = self.physical_np.node()
             body.setDeactivationEnabled(True)

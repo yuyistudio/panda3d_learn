@@ -32,6 +32,7 @@ class MainMenuState(BaseGameState):
 class GamePlayState(BaseGameState):
     def __init__(self):
         BaseGameState.__init__(self, "game.play")
+        self._main_menu_visible = False
 
     def on_enter(self, last_name):
         G.config_mgr = config_manager.ConfigManager()
@@ -42,6 +43,28 @@ class GamePlayState(BaseGameState):
             G.spawner = spawner.Spawner()
 
         G.game_mgr = game_manager.GameManager()
+        G.gui_mgr.create_inventory()
+        G.gui_mgr.create_game_menu()
+        G.gui_mgr.set_game_menu_visible(self._main_menu_visible)
+        G.gui_mgr.set_event_handler('game_menu.continue', self._handler_continue)
+        G.gui_mgr.set_event_handler('game_menu.save', self._handler_save)
+        G.gui_mgr.set_event_handler('game_menu.exit', self._handler_exit)
+        G.accept("escape", self._handler_escape)
+
+    def _handler_continue(self):
+        self._main_menu_visible = False
+        G.gui_mgr.set_game_menu_visible(self._main_menu_visible)
+
+    def _handler_save(self):
+        G.game_mgr.save_scene()
+
+    def _handler_exit(self):
+        self._handler_save()
+        sys.exit(0)
+
+    def _handler_escape(self):
+        self._main_menu_visible = not self._main_menu_visible
+        G.gui_mgr.set_game_menu_visible(self._main_menu_visible)
 
     def on_update(self, dt):
         G.game_mgr.on_update(dt)

@@ -11,10 +11,12 @@ from util import lerp_util
 
 class Hero(object):
     def __init__(self):
-        self.hero_lerper = lerp_util.FloatLerp(0, 0, max_value=10, lerp_factor=3.3)
-        self.cam_lerper = lerp_util.LerpVec3(Vec3(0, 0, 0), 6.3)
+        self.hero_lerper = lerp_util.FloatLerp(0, 0, max_value=20, lerp_factor=6.543210)
+        self.cam_lerper = lerp_util.LerpVec3(4.3210)
+        self.cam_pos_inited = False
         self._setup()
         self.tool = HeroTool(self)
+        self._last_move_direction = Vec3(0, 0, 0)
 
     def _setup(self):
         self.anim_np = hero_animation.load_hero()
@@ -60,15 +62,24 @@ class Hero(object):
         self._movementControl(dt)
         self.tool.onUpdate(dt)
 
+        hero_pos = G.game_mgr.hero.getNP().get_pos()
+
         # camera control
-        cam_pos = 30
+        cam_pos = 20
         factor1 = 1
         factor2 = 2
-        target_pos = G.game_mgr.hero.getNP().get_pos() + Vec3(0, -cam_pos * factor1, cam_pos * factor2)
+        target_pos = hero_pos + Vec3(0, -cam_pos * factor1, cam_pos * factor2)
         self.cam_lerper.set_target(target_pos)
         lerped_pos = self.cam_lerper.lerp(dt)
         G.cam.set_pos(lerped_pos)
         G.cam.look_at(lerped_pos + Vec3(0, factor1, -factor2))
+
+        # sun light
+        pos_offset = Vec3(10, -10, 10)
+        look_at_offset = Vec3(0, 0, 0)
+        sun_np = G.dir_light
+        sun_np.set_pos(hero_pos + pos_offset)
+        sun_np.look_at(hero_pos + look_at_offset)
 
         # setup animation weights
         speed_ratio = self.hero_lerper.get_percentage()
@@ -87,9 +98,9 @@ class Hero(object):
         direction = Vec3(dx, dy, 0)
         if direction.length() > 0.01:
             self.hero_lerper.to_max()
+            self._last_move_direction = direction.normalized()
         else:
             self.hero_lerper.to_min()
-        direction = direction.normalized()
         new_speed = self.hero_lerper.lerp(dt)
-        self.rigid_body.setLinearMovement(direction * new_speed, False)  # False -> World, True -> Local
+        self.rigid_body.setLinearMovement(self._last_move_direction * new_speed, False)  # False -> World, True -> Local
 

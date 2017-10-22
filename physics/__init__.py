@@ -37,15 +37,14 @@ class PhysicsWorld(object):
     def remove_collider(self, physics_np):
         self.world.remove_rigid_body(physics_np.node())
 
-    def addBoxCollider(self, box_np, mass, bit_mask=config.BIT_MASK_OBJECT, reparent=False):
+    def addBoxCollider(self, box_np, mass, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
         if config.SHOW_BOUNDS:
             box_np.showTightBounds()
 
         bb = box_np.getTightBounds()  # calulcate bounds before any rotation or scale
-        dx, dy, dz = abs(bb[0].getX() - bb[1].getX()),\
-                     abs(bb[0].getY() - bb[1].getY()),\
-                     abs(bb[0].getZ() - bb[1].getZ())
-
+        dx, dy, dz = abs(bb[0].getX() - bb[1].getX()) * scale,\
+                     abs(bb[0].getY() - bb[1].getY()) * scale,\
+                     abs(bb[0].getZ() - bb[1].getZ()) * scale
         half_size = Vec3(dx/2, dy/2, dz/2)
         shape = BulletBoxShape(half_size)
         body = BulletRigidBodyNode('physical_box_shapes')
