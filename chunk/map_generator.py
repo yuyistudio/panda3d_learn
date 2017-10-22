@@ -5,6 +5,7 @@ __author__ = 'Leon'
 import random
 from util import random_util
 import sys
+from panda3d.core import Vec3
 
 
 class DefaultRandomMapGenerator(object):
@@ -72,7 +73,7 @@ class DefaultObject(object):
         self._name, self._x, self._y = name, x, y
 
     def get_pos(self):
-        return self._x, self._y
+        return Vec3(self._x, self._y, 0)
 
     def get_name(self):
         return self._name
@@ -84,6 +85,12 @@ class DefaultObject(object):
         return True
 
     def on_unload(self):
+        pass
+
+    def on_save(self):
+        pass
+
+    def on_destroy(self):
         pass
 
 

@@ -16,8 +16,11 @@ class ObjectEntity(BaseEntity):
         BaseEntity.__init__(self, config)
 
         # setup shortcuts
-        self._transform_np = self.get_component(base_components.ObjModel).get_physics_np()
-        assert self._transform_np
+        self._transform_com = self.get_component(base_components.ObjModel)
+        assert self._transform_com
+
+    def on_destroy(self):
+        BaseEntity.destroy(self)
 
     def on_update(self, dt):
         for com in self._updating_componets:
@@ -27,14 +30,11 @@ class ObjectEntity(BaseEntity):
         return len(self._updating_componets) > 0
 
     def set_pos(self, pos):
-        if not self._transform_np:
+        if not self._transform_com:
             return
-        return self._transform_np.setPos(pos)
-
-    def on_unload(self):
-        return
+        return self._transform_com.set_pos(pos)
 
     def get_pos(self):
-        if not self._transform_np:
+        if not self._transform_com:
             return self.DEFAULT_POS
-        return self._transform_np.getPos()
+        return self._transform_com.get_pos()

@@ -4,6 +4,8 @@
 import math
 import logging
 from panda3d.core import Vec3
+from variable.global_vars import G
+import sys
 
 
 class Tile(object):
@@ -29,6 +31,16 @@ class Chunk(object):
 
         self._update_iterator = self._iterate_objects()
         self._iterator_dt = 0
+        self._enabled = True
+        self._ground_geom = None
+        self._ground_data = None
+
+    def set_ground_geom(self, geom, data):
+        self._ground_geom = geom
+        self._ground_data = data
+
+    def get_ground_data(self):
+        return self._ground_data
 
     def get_objects(self):
         objects = []
@@ -88,14 +100,32 @@ class Chunk(object):
         r, c = self.xy2rc(x, y)
         return 0 <= r < self._tc and 0 <= c < self._tc
 
+    def on_load(self, spawner, data):
+        self._ground_data = data['ground']
+        for obj_data in data['objects']:
+            obj = spawner.spawn_from_storage(obj_data)
+            assert obj, 'invalid storage data: %s' % obj_data
+            self.add_object(obj)
+
     def on_unload(self):
+        objects_data = []
         for tile in self._tiles:
             for obj in tile.objects:
-                obj.on_unload()
+                objects_data.append(obj.on_save())
+                obj.on_destroy()
+        for obj in self._frozen_objects:
+            objects_data.append(obj.on_save())
+            obj.on_destroy()
+        return {
+            'objects': objects_data,
+            'ground': self._ground_data,
+        }
 
     def _iterate_objects(self):
         while True:
+            # 每一帧更新一个Tile
             for tile in self._tiles:
+                obj = None
                 remained_objects = []
                 for obj in tile.objects:
                     obj.on_update(self._iterator_dt)
@@ -104,16 +134,55 @@ class Chunk(object):
                         remained_objects.append(obj)
                     else:
                         self._frozen_objects.append(obj)
-                    yield
                 tile.objects = remained_objects
+                del obj  # 每一帧中都确保没有对entity的多余引用
+                yield
 
+            # 更新所有的frozen_objects
             remained_objects = []
+            frozen_obj = None
             for frozen_obj in self._frozen_objects:
                 if not self._mgr.transfer_frozen_object(self, frozen_obj):
                     remained_objects.append(frozen_obj)
             self._frozen_objects = remained_objects
+            del frozen_obj  # 每一帧中都确保没有对entity的多余引用
             yield
 
     def on_update(self, dt):
+        if not self._enabled:
+            return
         self._iterator_dt = dt
         self._update_iterator.next()
+
+    def set_enabled(self, enabled):
+        self._enabled = enabled
+        if self._ground_geom:
+            if enabled:
+                self._ground_geom.reparent_to(G.render)
+            else:
+                self._ground_geom.detach_node()
+        for obj in self._iter_all_objects():
+            obj.set_enabled(enabled)
+
+    def _iter_all_objects(self):
+        """
+        遍历该chunk内的所有object。包括frozen_objects。
+        :return:
+        """
+        for tile in self._tiles:
+            for obj in tile.objects:
+                yield obj
+        for obj in self._frozen_objects:
+            yield obj
+
+    def clear_objects(self):
+        for obj in self._frozen_objects:
+            # 为什么是3：1、局部变量obj；2、self._frozen_objects；3、getrefcount(obj)的参数；
+            assert sys.getrefcount(obj) == 3
+        del self._frozen_objects[:]
+        for tile in self._tiles:
+            if tile.objects:
+                assert sys.getrefcount(tile.objects[0]) == 2, \
+                    'unexpected ref count: %d, obj: %s' % (sys.getrefcount(tile.objects[0]), tile.objects[0])
+                del tile.objects[:]
+

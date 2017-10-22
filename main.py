@@ -11,7 +11,6 @@ from util import states
 from variable.global_vars import G
 loadPrcFile("./config.prc")
 
-
 class Game(object):
     def __init__(self):
         G.state_mgr = states.StatesManager("menu.menu")

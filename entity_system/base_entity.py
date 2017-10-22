@@ -26,17 +26,31 @@ class BaseEntity(object):
         self._components = {}
         self._updating_componets = []
 
-        config = BaseEntity._config.get(self._name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
-        if config == BaseEntity.CONFIG_NOT_FOUND_FLAG:
+        components_config = config.get('components', {})
+        default_config = BaseEntity._config.get(self._name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
+        if default_config == BaseEntity.CONFIG_NOT_FOUND_FLAG:
             raise RuntimeError("entity not found : %s, config `%s`" % (self._name, BaseEntity._config))
-        for com_name, com_config in config['components'].iteritems():
-            self.add_component(com_name, com_config)
+        for com_name, com_config in default_config['components'].iteritems():
+            # construct component with default data.
+            com = self.add_component(com_name, com_config)
+            # load overwrite data.
+            com_overwrite = components_config.get(com_name)
+            if com_overwrite:
+                com.on_load(com_overwrite)
 
-        # call on_start() on each component
+        # call on_start() on each component after all components are ready.
         for com in self._components.itervalues():
             if com.is_update_overwrite():
                 self._updating_componets.append(com)
             com.on_start()
+
+    def destroy(self):
+        """
+        因为GC有延时，所以需要显式destroy物体。
+        :return:
+        """
+        for com in self._components.itervalues():
+            com.destroy()
 
     @staticmethod
     def register_components(components, ignore_conflict=False):
@@ -66,6 +80,10 @@ class BaseEntity(object):
         """
         BaseEntity._config = config
 
+    def set_enabled(self, enabled):
+        for c in self._components.itervalues():
+            c.set_enabled(enabled)
+
     def on_update(self, dt):
         return any([c.on_update(dt) for c in self._components.itervalues()])
 
@@ -85,9 +103,13 @@ class BaseEntity(object):
         key = component_class
         if key in self._components:
             raise RuntimeError("duplicated component: %s" % key)
+
         com = component_class(component_config)
-        com.entity = self
+        import weakref
+        com._entity_weak_ref = weakref.ref(self)
+
         self._components[key] = com
+        return com
 
     def get_component(self, component_type):
         return self._components.get(component_type)
@@ -99,7 +121,10 @@ class BaseEntity(object):
             value = com.on_save()
             assert value != None, "unexpected, com[%s].on_save() returns None" % key
             data[key] = value
-        return data
+        return {
+            'name': self.get_name(),
+            'components': data,
+        }
 
     def on_load(self, data):
         for com_name, com_data in data.iteritems():

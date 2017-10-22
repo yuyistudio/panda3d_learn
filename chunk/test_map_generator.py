@@ -19,7 +19,7 @@ class TestMapGenerator(object):
             threshold, tile_type = item[0], item[1]
             if v < threshold:
                 self._tile['name'] = tile_type
-                if random.random() < 0.05:
+                if random.random() < .1:
                     return {'object': {'name': 'box'}, 'title': self._tile}
                 else:
                     return self._tpl
