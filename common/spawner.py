@@ -4,7 +4,7 @@ __author__ = 'Leon'
 
 
 import json
-from entity_system.object_entity import ObjectEntity
+from entity_system.base_entity import BaseEntity
 from panda3d.core import Vec3
 
 
@@ -12,7 +12,12 @@ class Spawner(object):
     def __init__(self):
         objects_definitions = 'assets/objects/objects.json'
         js = json.loads(open(objects_definitions, 'r').read())
-        ObjectEntity.set_config(js)
+        BaseEntity.set_config(js)
+
+    def spawn_default(self, name, x=0, y=0):
+        ent = BaseEntity(name)
+        ent.set_pos(Vec3(x, y, 0))
+        return ent
 
     def spawn(self, x, y, storage_data):
         """
@@ -27,7 +32,7 @@ class Spawner(object):
         :return:
         """
         assert isinstance(storage_data, object), storage_data
-        ent = ObjectEntity(storage_data)
+        ent = BaseEntity(storage_data['name'], storage_data)
         ent.set_pos(Vec3(x, y, 0))
         return ent
 
@@ -41,7 +46,7 @@ class Spawner(object):
             }
         :return:
         """
-        ent = ObjectEntity(storage_data)
+        ent = BaseEntity(storage_data)
         return ent
 
 

@@ -66,7 +66,7 @@ class PhysicsWorld(object):
             box_np.reparentTo(np)  # to sync the transform automatically
         return np
 
-    def add_player_controller(self, box_np, bit_mask):
+    def add_player_controller(self, view_np, bit_mask):
         height = 3.3
         radius = 0.6
         shape = BulletCapsuleShape(radius, height - 2 * radius, ZUp)
@@ -74,9 +74,9 @@ class PhysicsWorld(object):
         player_np = G.render.attach_new_node(player_node)
         player_np.setCollideMask(bit_mask)
         self.world.attachCharacter(player_np.node())
-        if box_np:
-            box_np.reparentTo(player_np)
-            box_np.setPos(Vec3(0, 0, height * -.5))
+        if view_np:
+            view_np.reparent_to(player_np)
+            view_np.set_pos(Vec3(0, 0, height * -.5))
         return player_np
 
     def addBoxTrigger(self, box_np, bit_mask):
@@ -121,7 +121,7 @@ class PhysicsWorld(object):
         self.world.attachRigidBody(node)
         return np
 
-    def onUpdate(self, dt):
+    def on_update(self, dt):
         self.world.do_physics(dt)
 
     def mouseHit(self, distance=1000):

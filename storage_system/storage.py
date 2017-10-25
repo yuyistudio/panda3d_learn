@@ -25,7 +25,8 @@ def save_json(filename, data):
     """
     try:
         with open(filename, 'w') as fout:
-            json.dump(data, fout)
+            pass
+            #json.dump(data, fout)
         return True
     except Exception, e:
         logging.error("failed to save json to file `%s`, exception `%s`", filename, e)

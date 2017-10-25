@@ -20,21 +20,23 @@ class BaseEntity(object):
     def __str__(self):
         return "[Entity:%s]" % self.get_name()
 
-    def __init__(self, config):
-        self._name = config['name']
-        self._category = config.get('category') or self._name
-        self._components = {}
-        self._updating_componets = []
-
-        components_config = config.get('components', {})
+    def __init__(self, name, overwrite_config=dict()):
+        self._name = name
         default_config = BaseEntity._config.get(self._name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
         if default_config == BaseEntity.CONFIG_NOT_FOUND_FLAG:
-            raise RuntimeError("entity not found : %s, config `%s`" % (self._name, BaseEntity._config))
+            raise RuntimeError("entity not found : %s" % self._name)
+        self._category = default_config.get('category') or self._name
+
+        self._components = {}
+        self._updating_componets = []
+        self._transform_com = None
+
+        overwrite_com_conf = overwrite_config.get('components', {})
         for com_name, com_config in default_config['components'].iteritems():
             # construct component with default data.
             com = self.add_component(com_name, com_config)
             # load overwrite data.
-            com_overwrite = components_config.get(com_name)
+            com_overwrite = overwrite_com_conf.get(com_name)
             if com_overwrite:
                 com.on_load(com_overwrite)
 
@@ -71,6 +73,7 @@ class BaseEntity(object):
     def set_config(config):
         """
         :param config: mapping from entity_name => config
+            components:
             {
                 "stackable": {"max_count": 10},
                 "perishable": {"time": 80},
@@ -79,6 +82,8 @@ class BaseEntity(object):
         :return:
         """
         BaseEntity._config = config
+        for k, v in config.iteritems():
+            v['name'] = k
 
     def set_enabled(self, enabled):
         for c in self._components.itervalues():
@@ -131,6 +136,25 @@ class BaseEntity(object):
             com_type = name2component_class.get(com_name)
             assert com_type, "unidentified component %s" % com_name
             self.get_component(com_type).on_load(com_data)
+
+    def set_transform(self, transform):
+        self._transform_com = transform
+
+    def on_destroy(self):
+        BaseEntity.destroy(self)
+
+    def need_update(self):
+        return len(self._updating_componets) > 0
+
+    def set_pos(self, pos):
+        if not self._transform_com:
+            return
+        return self._transform_com.set_pos(pos)
+
+    def get_pos(self):
+        if not self._transform_com:
+            return self.DEFAULT_POS
+        return self._transform_com.get_pos()
 
 
 def register_object_components():
