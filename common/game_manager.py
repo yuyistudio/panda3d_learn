@@ -14,8 +14,14 @@ import json
 
 class GameManager(object):
     def __init__(self):
-        self.hero = create.Hero()
-        self.operation = operation.Operation(self.hero)
+        self.hero = G.spawner.spawn_default('hero', 3, 3)
+        self.heros = []
+        for i in range(6):
+            for j in range(6):
+                x = G.spawner.spawn_default('hero', i*2, j*2)
+                self.heros.append(x)
+        #self.hero = create.Hero()
+        self.operation = operation.Operation(self.heros[0])
         self.craft_mgr = craft_manager.CraftManager()
         self.craft_mgr.register_recipes(json.loads(open('assets/json/recipes.json').read()))
         self.chunk_mgr = chunk_manager.ChunkManager(chunk_title_count=16, chunk_tile_size=2)
@@ -40,9 +46,11 @@ class GameManager(object):
         self.scene.save()
 
     def on_update(self, dt):
-        self.hero.onUpdate(dt)
-        pos = self.hero.getNP().getPos()
-        self.chunk_mgr.on_update(pos.getX(), pos.getY(), dt)
+        for x in self.heros:
+            x.on_update(dt)
+        self.hero.on_update(dt)
+        pos = self.hero.get_pos()
+        self.chunk_mgr.on_update(pos[0], pos[1], dt)
 
 
 

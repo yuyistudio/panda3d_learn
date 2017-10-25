@@ -25,6 +25,10 @@ class FloatLerp(object):
     def get_percentage(self):
         return (self.value - self.min_value) / (self.max_value - self.min_value)
 
+    def reset(self):
+        self.value = self.min_value
+        self.target_value = self.min_value
+
     def lerp(self, dt):
         self.value = self.value + (self.target_value - self.value) * self.lerp_factor * dt
         return self.value

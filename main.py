@@ -27,7 +27,7 @@ class Game(object):
 
     def main_loop(self, task):
         dt = G.taskMgr.globalClock.getDt()
-        G.physics_world.onUpdate(dt)
+        G.physics_world.on_update(dt)
         G.state_mgr.on_update(dt)
         return task.cont
 

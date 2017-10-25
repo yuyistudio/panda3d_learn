@@ -67,7 +67,7 @@ class HeroTool(object):
         self.hit_recorder.reset()
         if self.target_tool_weight > 0.1:
             return
-        self.hero.anim_np.play(TOOL_ANIM_NAME, partName=TOOL_SUBPART)
+        self.hero._animator.play(TOOL_ANIM_NAME, once=True)
         self.target_tool_weight = 10
 
     def getCurrentTool(self):
@@ -88,14 +88,6 @@ class HeroTool(object):
             node.setLinearVelocity((physical_np.getPos() - self.hero.physics_np.getPos()).normalized() * 5)
             print 'hit:', name
 
-    def onUpdate(self, dt):
-        self._toolAnimation(dt)
+    def on_update(self, dt):
         self._checkHit()
 
-
-    def _toolAnimation(self, dt):
-        # tool animation control
-        self.tool_weight = self.tool_weight + (self.target_tool_weight - self.tool_weight) * dt * self.tool_weight_lerp
-        self.hero.anim_np.setControlEffect(TOOL_ANIM_NAME, self.tool_weight, partName=TOOL_SUBPART)
-        if not self.hero.anim_np.getCurrentAnim(partName=TOOL_SUBPART):
-            self.target_tool_weight = 0

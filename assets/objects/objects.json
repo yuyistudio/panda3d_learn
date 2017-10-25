@@ -1,4 +1,37 @@
 {
+    "hero": {
+        "components": {
+            "inspectable": {
+                "iname": "主角"
+            },
+            "camera_target": {},
+            "transform_controller": {
+            },
+            "random_hero_controller": {
+            },
+            "animator":  {
+                "filepath": "./assets/blender/hero.egg",
+                "animations": {
+                    "walk": {
+                        "events":[["start", 0], ["middle", 40]],
+                        "rate": 6
+                    },
+                    "tool": {
+                        "rate": 4.1
+                    },
+                    "pickup": {
+                        "events": [["pickup", 10], ["done", 20]],
+                        "rate": 1
+                    },
+                    "idle": {},
+                    "craft": {
+                        "rate": 3
+                    }
+                },
+                "default": "idle"
+            }
+        }
+    },
     "box": {
         "components": {
             "inspectable": {
