@@ -1,9 +1,9 @@
 #encoding: utf8
 
-from panda3d.ode import *
 from panda3d.core import *
 from panda3d.bullet import *
-import variable
+from variable.global_vars import G
+import config
 
 
 class PhysicsWorld(object):
@@ -19,61 +19,68 @@ class PhysicsWorld(object):
     """
     instance = None
     MASS_IFINITE = 0
-    COLLISION_EVENT_NAME = "__ODE_COLLISION_EVENT__"
-    def __init__(self, debug=True):
+
+    def __init__(self, debug=False):
         if PhysicsWorld.instance:
             raise RuntimeError("duplicated physics world")
         PhysicsWorld.instance = self
-        self.render = variable.show_base.render
-        self.render = variable.show_base.render
+        self.use_wrapper = False  # TODO 为什么设置为True会非常卡？
         self.world = BulletWorld()
         self.world.setGravity(Vec3(0, 0, -9.81))
         if debug:
             debugNode = BulletDebugNode("debug_bullet")
             self.world.setDebugNode(debugNode)
-            debugNode.showWireframe(True)
-            debugNp = self.render.attachNewNode(debugNode)
+            #debugNode.showWireframe(True)
+            debugNp = G.render.attachNewNode(debugNode)
             debugNp.show()
 
-    def addBoxCollider(self, box_np, mass, bit_mask=variable.BIT_MASK_OBJECT):
-        if variable.SHOW_BOUNDS:
+    def remove_collider(self, physics_np):
+        self.world.remove_rigid_body(physics_np.node())
+
+    def addBoxCollider(self, box_np, mass, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
+        if config.SHOW_BOUNDS:
             box_np.showTightBounds()
 
         bb = box_np.getTightBounds()  # calulcate bounds before any rotation or scale
-        dx, dy, dz = abs(bb[0].getX() - bb[1].getX()),\
-                     abs(bb[0].getY() - bb[1].getY()),\
-                     abs(bb[0].getZ() - bb[1].getZ())
-
+        dx, dy, dz = abs(bb[0].getX() - bb[1].getX()) * scale,\
+                     abs(bb[0].getY() - bb[1].getY()) * scale,\
+                     abs(bb[0].getZ() - bb[1].getZ()) * scale
         half_size = Vec3(dx/2, dy/2, dz/2)
         shape = BulletBoxShape(half_size)
-        node = BulletRigidBodyNode('physical_box_shapes')
-        node.setMass(mass)
-        node.addShape(shape)
-        node.setIntoCollideMask(bit_mask)
+        body = BulletRigidBodyNode('physical_box_shapes')
+        body.setMass(mass)
+        body.addShape(shape)
+        body.set_static(True)
+        body.setIntoCollideMask(bit_mask)
 
-        '''
-        # TODO xy-rotation & z-position limitation
-        hpr = TransformState.makePosHpr(Point3(-5), Vec3(0, 0, 0))
-        hpr2 = TransformState.makePosHpr(Point3(5), Vec3(0, 0, 360))
-        gc = BulletGenericConstraint(node, hpr, hpr2)
-        #gc.setAngularLimit(0, 0, 0)
-        #gc.setAngularLimit(1, 0, 0)
-        self.world.attachConstraint(gc)
-        '''
+        self.world.attachRigidBody(body)
 
-        self.world.attachRigidBody(node)
-
-        np = self.render.attachNewNode(node)
+        np = G.render.attachNewNode(body)
         np.setName("physical_box")
-        node.setPythonTag("instance", np)
+        body.setPythonTag("instance", np)
         np.setPos(box_np.getPos())
         np.setZ(np, dz/2)
-        box_np.setPos(Vec3(0, 0, -dz/2))
-        box_np.reparentTo(np)  # to sync the transform automatically
+
+        if reparent:
+            box_np.setPos(Vec3(0, 0, -dz / 2))
+            box_np.reparentTo(np)  # to sync the transform automatically
         return np
 
+    def add_player_controller(self, view_np, bit_mask):
+        height = 3.3
+        radius = 0.6
+        shape = BulletCapsuleShape(radius, height - 2 * radius, ZUp)
+        player_node = BulletCharacterControllerNode(shape, 0.4, 'Player')
+        player_np = G.render.attach_new_node(player_node)
+        player_np.setCollideMask(bit_mask)
+        self.world.attachCharacter(player_np.node())
+        if view_np:
+            view_np.reparent_to(player_np)
+            view_np.set_pos(Vec3(0, 0, height * -.5))
+        return player_np
+
     def addBoxTrigger(self, box_np, bit_mask):
-        if variable.SHOW_BOUNDS:
+        if config.SHOW_BOUNDS:
             box_np.showTightBounds()
 
         bb = box_np.getTightBounds()  # calulcate bounds before any rotation or scale
@@ -96,37 +103,41 @@ class PhysicsWorld(object):
         np.setPos(pos)
         return np
 
-    def addGround(self, plane_np):
+    def set_collider_enabled(self, np, enabled):
+        if enabled:
+            self.world.attach_rigid_body(np.node())
+        else:
+            self.world.remove_rigid_body(np.node())
+
+    def addGround(self, friction=3):
         shape = BulletPlaneShape(Vec3(0, 0, 1), 0)
         node = BulletRigidBodyNode('physical_ground_shapes')
         node.addShape(shape)
-        node.setFriction(1)
-        node.setIntoCollideMask(variable.BIT_MASK_GROUND)
-        np = self.render.attachNewNode(node)
+        node.setFriction(friction)
+        node.setIntoCollideMask(config.BIT_MASK_GROUND)
+        np = G.render.attachNewNode(node)
         np.setName("physical_ground")  # if unset, take the name of its node
         np.setPos(0, 0, 0)
         self.world.attachRigidBody(node)
-        plane_np.reparentTo(np)
         return np
 
-    def onUpdate(self, dt):
-        self.world.doPhysics(dt)
+    def on_update(self, dt):
+        self.world.do_physics(dt)
 
-    def mouseHit(self, distance=100):
-        mn = variable.show_base.mouseWatcherNode
+    def mouseHit(self, distance=1000):
+        mn = G.mouseWatcherNode
         if not mn.hasMouse():
             return []
-        base = variable.show_base
-        render = base.render
+        render = G.render
 
-        # Get from/to points from mouse click
+        # Get from/to points from _mouse click
         pMouse = mn.getMouse()
         pFrom = Point3()
         pTo = Point3()
-        base.camLens.extrude(pMouse, pFrom, pTo)
-        pFrom = render.getRelativePoint(base.cam, pFrom)
-        pTo = render.getRelativePoint(base.cam, pTo)
+        G.camLens.extrude(pMouse, pFrom, pTo)
+        pFrom = render.getRelativePoint(G.cam, pFrom)
+        pTo = render.getRelativePoint(G.cam, pTo)
         pTo = pFrom + (pTo - pFrom) .normalized() * distance
 
-        result = self.world.rayTestAll(pFrom, pTo, variable.BIT_MASK_MOUSE)
+        result = self.world.rayTestAll(pFrom, pTo, config.BIT_MASK_MOUSE)
         return result.getHits() or []

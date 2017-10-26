@@ -2,9 +2,10 @@
 
 import primitive
 from util import trigger
-import variable
+from variable.global_vars import G
+from panda3d.core import Vec3
 
 def create():
-    visual_np = primitive.make_ground(variable.show_base.render)
+    visual_np = G.physics_world.addGround()
     visual_np.setTag("type", "ground")
     return visual_np

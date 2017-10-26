@@ -1,43 +1,45 @@
 #encoding: utf8
 
 '''
-mouse picker based on ray cast from camera view.
+_mouse picker based on ray cast from camera view.
 collide with specified collide_mask
 '''
 
 from pandac.PandaModules import *
-import variable
+import config
+from variable.global_vars import G
+
 
 class MousePicker(object):
     def __init__(self, triggers):
         self.pickerNode = CollisionNode('mouseRay')
-        self.pickerNP = variable.show_base.cam.attachNewNode(self.pickerNode)
-        self.pickerNode.setFromCollideMask(BitMask32(variable.BIT_MASK_MOUSE))
+        self.pickerNP = G.cam.attachNewNode(self.pickerNode)
+        self.pickerNode.setFromCollideMask(BitMask32(config.BIT_MASK_MOUSE))
         self.pickerNode.setIntoCollideMask(0)
         self.pickerRay = CollisionRay()
         self.pickerNode.addSolid(self.pickerRay)
-        self.pickerNP.setTag("type", "mouse")
+        self.pickerNP.setTag("type", "_mouse")
         triggers.addCollider(self.pickerNP)
 
-    def onUpdate(self):  # mpos is the position of the mouse on the screen
-        if not variable.show_base.mouseWatcherNode.hasMouse():
+    def onUpdate(self):  # mpos is the position of the _mouse on the screen
+        if not G.mouseWatcherNode.hasMouse():
             return []
-        mpos = variable.show_base.mouseWatcherNode.getMouse()
+        mpos = G.mouseWatcherNode.getMouse()
         self.pickedObj = None  # be sure to reset this
-        self.pickerRay.setFromLens(variable.show_base.camNode, mpos.getX(), mpos.getY())
+        self.pickerRay.setFromLens(G.camNode, mpos.getX(), mpos.getY())
 
 class Triggers(object):
     def __init__(self):
         self.collision_traverser = CollisionTraverser()
-        if variable.SHOW_COLLISION:
-            self.collision_traverser.showCollisions(variable.show_base.render)
+        if config.SHOW_COLLISION:
+            self.collision_traverser.showCollisions(G.render)
         self.queue = CollisionHandlerQueue()
 
     def addCollider(self, node_path):
         self.collision_traverser.addCollider(node_path, self.queue)
 
     def getEntries(self):
-        self.collision_traverser.traverse(variable.show_base.render)
+        self.collision_traverser.traverse(G.render)
         if self.queue.getNumEntries() > 0:
             self.queue.sortEntries()
         return [self.queue.getEntry(i) for i in range(self.queue.getNumEntries())]
@@ -48,7 +50,7 @@ def addCollisionBox(box_np, bit_mask, type_tag='unknown', from_enabled=False, to
     dx, dy, dz = abs(bb[0].getX() - bb[1].getX()),\
                  abs(bb[0].getY() - bb[1].getY()),\
                  abs(bb[0].getZ() - bb[1].getZ())
-    # for mouse pick
+    # for _mouse pick
     cnode = CollisionNode('box_collision')
     '''
      * Create the Box by giving a Center and distances of of each of the sides of
@@ -67,7 +69,7 @@ def addCollisionBox(box_np, bit_mask, type_tag='unknown', from_enabled=False, to
     if to_enabled:
         cnode.setIntoCollideMask(bit_mask)
     cnp = box_np.attachNewNode(cnode)
-    if variable.SHOW_COLLISION_BOX:
+    if config.SHOW_COLLISION_BOX:
         cnp.show()
     cnp.setTag("type", type_tag)
     return cnp
@@ -78,7 +80,7 @@ def addCollisionSegment(node_path, bit_mask, type_tag='unknown', from_enabled=Fa
     dx, dy, dz = abs(bb[0].getX() - bb[1].getX()),\
                  abs(bb[0].getY() - bb[1].getY()),\
                  abs(bb[0].getZ() - bb[1].getZ())
-    # for mouse pick
+    # for _mouse pick
     cnode = CollisionNode('box_collision')
     '''
      * Create the Box by giving a Center and distances of of each of the sides of
@@ -93,7 +95,7 @@ def addCollisionSegment(node_path, bit_mask, type_tag='unknown', from_enabled=Fa
     if to_enabled:
         cnode.setIntoCollideMask(bit_mask)
     cnp = node_path.attachNewNode(cnode)
-    if variable.SHOW_COLLISION_BOX:
+    if config.SHOW_COLLISION_BOX:
         cnp.show()
     cnp.setTag("type", type_tag)
     return cnp
@@ -104,7 +106,7 @@ def addInfinitePlane(node_path, type_tag, a, b, c, d):
     """
     cn = CollisionNode('ground_plane')
     cn.setFromCollideMask(0)
-    cn.setIntoCollideMask(BitMask32(variable.BIT_MASK_GROUND))
+    cn.setIntoCollideMask(BitMask32(config.BIT_MASK_GROUND))
     # cp = CollisionPlane(Plane(Vec3(0, 1, 0), Point3(0, 0, 0)))
     cp = CollisionPlane(Plane(0, 0, 1, 0))
     cn.addSolid(cp)

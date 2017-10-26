@@ -1,12 +1,15 @@
 #encoding: utf8
 
 import light
-import variable
+from variable.global_vars import G
+
 
 def create():
-    render = variable.show_base.render
+    render = G.render
     light.init(render)
     dir_light = light.add_directional(render)
     amb_light = light.add_ambient(render)
-    variable.show_base.cameraSelection = 0
-    variable.show_base.lightSelection = 0
+    G.cameraSelection = 0
+    G.lightSelection = 0
+    G.dir_light = dir_light
+    G.amb_light = amb_light
