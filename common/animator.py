@@ -4,19 +4,23 @@ sys.path.insert(0, 'd:\\Leon\\gamedev\\pandas3d\\learn')
 from direct.actor import Actor
 from panda3d.core import *
 from variable.global_vars import G
+import types
 
 
 class Animator(object):
     _NO_MORE_EVENT = -1
 
-    def __init__(self, config, event_handler):
+    def __init__(self, config, event_handler=None):
         """
         :param config:
         :param event_handler: object with function AnimName_EventName() to handle events.
         :return:
         """
         self._config = config
-        self._handler = event_handler
+        self._handler = None
+        self._fn_handler = None
+        if event_handler:
+            self.set_event_handler(event_handler)
 
         self._current_event_idx = 0
         self._last_frame = -1
@@ -47,18 +51,37 @@ class Animator(object):
 
         self.play(config.get('default', 'idle'), once=False)
 
+    def set_event_handler(self, handler):
+        if isinstance(handler, types.MethodType) or isinstance(handler, types.FunctionType):
+            self._fn_handler = handler
+            self._handler = None
+        else:
+            self._handler = handler
+            self._fn_handler = None
+
     def get_actor_np(self):
         return self._actor_np
 
     def _emit_event(self, anim_name, event_name):
-        try:
-            fn = getattr(self._handler, '%s_%s' % (anim_name, event_name))
+        if self._handler:
+            fn = None
+            try:
+                fn = getattr(self._handler, 'Animator_%s_%s' % (anim_name, event_name))
+            except:
+                pass
             if fn:
                 fn()
-        except:
-            pass
+            fn = None
+            try:
+                fn = getattr(self._handler, 'Animator_handler')
+            except:
+                pass
+            if fn:
+                fn(anim_name, event_name)
+        elif self._fn_handler:
+            self._fn_handler(anim_name, event_name)
 
-    def _trigger_events(self, anim_name, current_frame):
+    def _check_events(self, anim_name, current_frame):
         if not self._events:
             return
 
@@ -95,41 +118,36 @@ class Animator(object):
     def on_update(self):
         current_anim = self._actor_np.getCurrentAnim()
         if not current_anim:
-            self._trigger_events(self._last_anim, -1)
+            self._emit_event(self._last_anim, 'done')
+            self._last_anim = 'idle'
+            self._current_event_idx = 0
+            self._last_frame = -1
+            self._check_events(self._last_anim, -1)  # 检查done事件
             self.play('idle', once=False)
             return
 
-        self._trigger_events(current_anim, self._actor_np.getCurrentFrame())
+        self._check_events(current_anim, self._actor_np.getCurrentFrame())
         self._last_anim = current_anim
 
     def play(self, anim_name, once):
         current_anim = self._actor_np.getCurrentAnim()
         if anim_name == current_anim:
-            return
+            return False
 
         self._actor_np.stop(current_anim)
-        self._current_event_idx = 0  # reset events
+        self._current_event_idx = 0
+        self._last_frame = -1
 
         if once:
             self._actor_np.play(anim_name)
         else:
             self._actor_np.loop(anim_name)
-
+        return True
 
 
 class Handler(object):
-    def walk_done(self):
-        print 'walk done'
-
-    def walk_start(self):
-        print 'walk start'
-
-    def pickup_pickup(self):
-        import random
-        print 'picked something:', random.random()
-
-    def pickup_done(self):
-        print 'pick done'
+    def Animator_handler(self, anim_name, event_name):
+        print 'handler:', anim_name, event_name
 
 
 def test():
@@ -141,11 +159,12 @@ def test():
                 "rate": 3,
             },
             "pickup": {
-                "events": [['pickup', 10], ['done', 20]],
-                "rate": 3,
+                "events": [['pickup', 10]],
+                "rate": 1,
             },
             "idle": {
-                'rate': 3.1,
+                "events": [['start', 0], ['middle', 10]],
+                'rate': 2.1,
             }
         },
         'default': 'idle',
@@ -158,7 +177,7 @@ def test():
         ac.on_update()
         return task.cont
     def pickup():
-        ac.play('pickup', True, 3)
+        ac.play('pickup', True)
     G.accept('space', pickup)
     G.taskMgr.add(up, 'xx')
     G.cam.set_pos(Vec3(10, 10, 3))
