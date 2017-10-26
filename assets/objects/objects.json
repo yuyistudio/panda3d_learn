@@ -16,6 +16,10 @@
                         "events":[["start", 0], ["middle", 40]],
                         "rate": 6
                     },
+                    "scared": {
+                        "rate": 2
+                    },
+                    "boring":{"rate":2},
                     "tool": {
                         "rate": 4.1
                     },
@@ -25,7 +29,7 @@
                     },
                     "idle": {},
                     "craft": {
-                        "rate": 3
+                        "rate": 2
                     }
                 },
                 "default": "idle"

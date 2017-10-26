@@ -18,10 +18,11 @@ class GameManager(object):
         self.heros = []
         for i in range(6):
             for j in range(6):
-                x = G.spawner.spawn_default('hero', i*2, j*2)
-                self.heros.append(x)
+                pass
+                #x = G.spawner.spawn_default('hero', i*2, j*2)
+                #self.heros.append(x)
         #self.hero = create.Hero()
-        self.operation = operation.Operation(self.heros[0])
+        self.operation = operation.Operation(self.hero)
         self.craft_mgr = craft_manager.CraftManager()
         self.craft_mgr.register_recipes(json.loads(open('assets/json/recipes.json').read()))
         self.chunk_mgr = chunk_manager.ChunkManager(chunk_title_count=16, chunk_tile_size=2)
