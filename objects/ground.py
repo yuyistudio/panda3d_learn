@@ -7,5 +7,5 @@ from panda3d.core import Vec3
 
 def create():
     visual_np = G.physics_world.addGround()
-    visual_np.setTag("type", "ground")
+    visual_np.set_python_tag("type", "ground")
     return visual_np

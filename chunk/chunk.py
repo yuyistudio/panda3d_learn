@@ -6,6 +6,7 @@ import logging
 from panda3d.core import Vec3
 from variable.global_vars import G
 import sys
+import config as gconf
 
 
 class Tile(object):
@@ -13,10 +14,15 @@ class Tile(object):
         self.objects = []
         self.r, self.c = r, c
 
+    def destroy(self):
+        for obj in self.objects:
+            obj.destroy()
+
 
 class Chunk(object):
     """
-    管理一堆Tiles和objects
+    1. 管理一堆Tiles和objects的个体；
+    2. 管理这些Tiles和objects生成的geom和collider，并进行合并优化；
     """
     def __init__(self, mgr, base_x, base_y, tile_count, tile_size):
         self._mgr, self._bx, self._by, self._tc, self._ts = \
@@ -56,14 +62,17 @@ class Chunk(object):
     def add_object_to(self, obj, r, c):
         tile = self._tiles[r * self._tc + c]
         assert tile, 'rc (%s,%s) not in chunk range' % (r, c)
-        tile.objects.append(obj)
+        self._on_new_object_added(tile, obj)
 
     def add_object(self, obj):
         pos = obj.get_pos()
         r, c = self.xy2rc(pos.getX(), pos.getY())
         assert self.rc_in_chunk(r, c), '%s , %s , %s,%s' % ((r, c), pos, self._bx, self._by)
         tile = self._tiles[r * self._tc + c]
-        tile.objects.append(obj)
+        self._on_new_object_added(tile, obj)
+
+    def _on_new_object_added(self, tile, new_obj):
+        tile.objects.append(new_obj)
 
     def xy2rc(self, x, y):
         """
@@ -107,19 +116,27 @@ class Chunk(object):
             assert obj, 'invalid storage data: %s' % obj_data
             self.add_object(obj)
 
-    def on_unload(self):
+    def on_save(self):
         objects_data = []
         for tile in self._tiles:
             for obj in tile.objects:
                 objects_data.append(obj.on_save())
-                obj.on_destroy()
         for obj in self._frozen_objects:
             objects_data.append(obj.on_save())
-            obj.on_destroy()
         return {
             'objects': objects_data,
-            'ground': self._ground_data,
+            'ground' : self._ground_data,
         }
+
+    def destroy(self):
+        self._ground_geom.remove_node()
+
+        for tile in self._tiles:
+            tile.destroy()
+        self._tiles = None
+        for obj in self._frozen_objects:
+            obj.destroy()
+        self._frozen_objects = None
 
     def _iterate_objects(self):
         while True:
@@ -128,8 +145,11 @@ class Chunk(object):
                 obj = None
                 remained_objects = []
                 for obj in tile.objects:
-                    obj.on_update(self._iterator_dt)
-                    pos = obj.get_pos()
+                    entity = obj
+                    if entity.is_destroyed():
+                        continue
+                    entity.on_update(self._iterator_dt)
+                    pos = entity.get_pos()
                     if self.xy_in_chunk(pos.getX(), pos.getY()):
                         remained_objects.append(obj)
                     else:
@@ -142,6 +162,8 @@ class Chunk(object):
             remained_objects = []
             frozen_obj = None
             for frozen_obj in self._frozen_objects:
+                if frozen_obj.is_destroyed():
+                    continue
                 if not self._mgr.transfer_frozen_object(self, frozen_obj):
                     remained_objects.append(frozen_obj)
             self._frozen_objects = remained_objects
@@ -188,7 +210,12 @@ class Chunk(object):
         for obj in self._frozen_objects:
             yield obj
 
-    def clear_objects(self):
+    def maybe_messy_clear_objects(self):
+        """
+        删除该Chunk内的所有object.
+        Warning：仅仅删除引用。
+        :return:
+        """
         for obj in self._frozen_objects:
             # 为什么是3：1、局部变量obj；2、self._frozen_objects；3、getrefcount(obj)的参数；
             assert sys.getrefcount(obj) == 3

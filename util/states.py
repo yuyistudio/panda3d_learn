@@ -10,6 +10,8 @@ on_poped
 on_leave
 """
 
+from util import log
+
 
 class BaseGameState(object):
     """
@@ -59,7 +61,7 @@ class StatesManager(object):
         self.states[name] = state
 
     def push(self, name):
-        print 'state pushed:', self.state_stack[-1]
+        log.process('state pushed: %s', self.state_stack[-1])
         assert name != self.state_stack[-1]
         self._current().on_pushed(name)
         last_name = self.state_stack[-1]
@@ -68,14 +70,14 @@ class StatesManager(object):
 
     def pop(self):
         assert self.state_stack
-        print 'state popped:', self.state_stack[-1]
+        log.process('state popped: %s', self.state_stack[-1])
         self._current().on_leave(self.state_stack[-2])
         last_name = self.state_stack[-1]
         self.state_stack.pop()
         self._current().on_popped(last_name)
 
     def switch_to(self, name):
-        print 'state switched to:', name
+        log.process('state switched to: %s', name)
         assert self.state_stack[-1] != name
         self._current().on_leave(name)
         last_name = self.state_stack[-1]
@@ -93,8 +95,6 @@ class StatesManager(object):
             self._init_done = True
             self._current().on_enter("INITIAL_STATE")
         self._current().on_update(dt)
-
-
 
 
 import unittest

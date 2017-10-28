@@ -1,10 +1,47 @@
 {
     "hero": {
+        "radius": 0.6,
         "components": {
             "inspectable": {
                 "iname": "主角"
             },
-            "camera_target": {},
+            "transform_controller": {
+                "speed": 13
+            },
+            "hero_controller": {
+            },
+            "animator":  {
+                "filepath": "./assets/blender/hero.egg",
+                "animations": {
+                    "walk": {
+                        "events":[["start", 0], ["middle", 40]],
+                        "rate": 6
+                    },
+                    "scared": {
+                        "rate": 1
+                    },
+                    "boring":{"rate":2},
+                    "tool": {
+                        "rate": 4.1
+                    },
+                    "pickup": {
+                        "events": [["pickup", 10], ["done", 20]],
+                        "rate": 1
+                    },
+                    "idle": {},
+                    "craft": {
+                        "rate": 2
+                    }
+                },
+                "default": "idle"
+            }
+        }
+    },
+    "npc": {
+        "components": {
+            "inspectable": {
+                "iname": "未知的冒险者"
+            },
             "transform_controller": {
             },
             "random_hero_controller": {
@@ -50,17 +87,32 @@
         }
     },
     "tree": {
+        "radius": 1,
         "components": {
             "inspectable": {
                 "iname": "树木"
             },
+            "loot": {
+                "objects": {
+                    "apple": 2
+                }
+            },
+            "destroyable": {
+                "types": {
+                    "pick": {"efficiency": 0.2},
+                    "cut": {"efficiency": 1}
+                },
+                "duration": 10,
+                "key": "left"
+            },
+            "loot": {},
             "model": {
                 "model_file": "assets/blender/tree.egg",
                 "physics": {
                     "shape": "box"
                 },
                 "scale": 3.7,
-                "collider_scale": 0.2
+                "collider_scale": [0.2, 0.2, 0.9]
             }
         }
     },

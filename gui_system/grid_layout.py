@@ -34,7 +34,7 @@ class GridLayout(object):
 
         total_width = self._padding_h * 2 + (cell_width + margin) * (self._cols - 1) + cell_width
         total_height = self._padding_v * 2 + (cell_height + margin) * (self._rows - 1) + cell_height
-        print "total size:", total_width, total_height
+        # print "total size:", total_width, total_height
 
         self._scale = 1
         self._cell_normal_scale = 1

@@ -26,7 +26,8 @@ def save_json(filename, data):
     try:
         with open(filename, 'w') as fout:
             pass
-            #json.dump(data, fout)
+            json.dump(data, fout)
+        logging.error("storage save: %s", filename)
         return True
     except Exception, e:
         logging.error("failed to save json to file `%s`, exception `%s`", filename, e)
@@ -52,6 +53,10 @@ class Scene(object):
         self._slot_name = slot_name
         self._name = name
         self._data = {}
+        self._loaded = False
+
+    def __str__(self):
+        return '[slot:%s|scene:%s]' % (self._slot_name, self._name)
 
     def set(self, k, v):
         self._data[k] = v
@@ -68,6 +73,7 @@ class Scene(object):
         return save_json(self._get_filename(), self._data)
 
     def load(self):
+        self._loaded = True
         self._data = load_json(self._get_filename()) or self._data
 
 
@@ -76,6 +82,7 @@ class Slot(object):
         self._name = slot_name
         self._slot_data = {}
         self._scenes = {}
+        self._current_scene_name = None
 
     def set_global(self, k, v):
         self._slot_data[k] = v
@@ -85,27 +92,47 @@ class Slot(object):
             return self._slot_data[k]
         return self._slot_data.get(k)
 
-    def get_scene(self, k, must_exist=False):
+    def get_scene(self, k):
+        """
+        获取不到时，返回None.
+        :param k:
+        :return:
+        """
+        return self._scenes.get(k)
+
+    def get_current_scene(self):
+        if self._current_scene_name:
+            return self.get_scene(self._current_scene_name)
+        return None
+
+    def create_scene(self, k):
+        """
+        创建新的Scene，并设置为当前Scene。
+        :param k:
+        :return:
+        """
         scene = self._scenes.get(k)
-        if must_exist:
-            assert scene
+        assert not scene
+        scene = Scene(self._name, k)
+        self._scenes[k] = scene
+        self._current_scene_name = k
         return scene
 
-    def get_or_create_scene_entry(self, k):
-        scene = self._scenes.get(k)
-        if not scene:
-            scene = Scene(self._name, k)
-            self._scenes[k] = scene
-        return scene
+    def set_current_name(self, scene_name):
+        self._current_scene_name = scene_name
 
     def save(self):
         self._slot_data[MGR_INFO_KEY] = {
             'scene_names': self._scenes.keys(),
+            'current': self._current_scene_name,
         }
         return save_json(PATTERN_SLOT_STORAGE % self._name, self._slot_data)
 
     def load(self):
         file_name = PATTERN_SLOT_STORAGE % self._name
-        self._slot_data = load_json(file_name) or self._slot_data
+        self._slot_data = load_json(file_name) or {}
+        if not self._slot_data:
+            return False
+        self._current_scene_name = self._slot_data.get(MGR_INFO_KEY, {}).get('current', None)
         for scene_name in self._slot_data.get(MGR_INFO_KEY, {}).get('scene_names', []):
             self._scenes[scene_name] = Scene(self._name, scene_name)
