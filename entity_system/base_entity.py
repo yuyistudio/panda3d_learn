@@ -3,7 +3,9 @@
 
 import base_components
 from panda3d.core import Vec3
-
+from base_component import NO_STORAGE_FLAG
+from common import user_action
+from variable.global_vars import G
 
 name2component_class = {}
 
@@ -21,15 +23,19 @@ class BaseEntity(object):
         return "[Entity:%s]" % self.get_name()
 
     def __init__(self, name, overwrite_config=dict()):
+        assert isinstance(name, basestring)
         self._name = name
         default_config = BaseEntity._config.get(self._name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
         if default_config == BaseEntity.CONFIG_NOT_FOUND_FLAG:
             raise RuntimeError("entity not found : %s" % self._name)
         self._category = default_config.get('category') or self._name
 
+        self._destroyed = False
         self._components = {}
         self._updating_componets = []
         self._transform_com = None
+        self._radius = overwrite_config.get('radius', default_config.get('radius', 1))
+        self._key_handlers = {}  # action对应的组件。例如 left_click 对应到 edible。目的是保证一个action只有一个com进行响应。
 
         overwrite_com_conf = overwrite_config.get('components', {})
         for com_name, com_config in default_config['components'].iteritems():
@@ -46,13 +52,46 @@ class BaseEntity(object):
                 self._updating_componets.append(com)
             com.on_start()
 
+    def register_key_handler(self, key_type, component):
+        assert key_type not in self._key_handlers
+        self._key_handlers[key_type] = component
+
+    def allow_action(self, tool, action_type):
+        handler_com = self._key_handlers.get(action_type)
+        if not handler_com:
+            return False
+        return handler_com.allow_action(tool, action_type)
+
+    def do_action(self, tool, action_type):
+        if not self.allow_action(tool, action_type):
+            return False
+        handler_com = self._key_handlers.get(action_type)
+        return handler_com.do_action(tool, action_type)
+
+    def set_radius(self, new_radius):
+        self._radius = new_radius
+
+    def get_radius(self):
+        return self._radius
+
+    def is_destroyed(self):
+        return self._destroyed
+
     def destroy(self):
         """
         因为GC有延时，所以需要显式destroy物体。
+        destroy不会立即生效，以免当前帧出错。应当保证被destroy的物体不会再产生交互。
         :return:
         """
-        for com in self._components.itervalues():
-            com.destroy()
+        assert not self._destroyed
+        self._destroyed = True
+
+        # TODO 实现一种更优雅的方式
+        def delayed_destroy(task):
+            for com in self._components.itervalues():
+                com.destroy()
+            return task.done
+        G.taskMgr.doMethodLater(0.1, delayed_destroy, name='destroy')
 
     @staticmethod
     def register_components(components, ignore_conflict=False):
@@ -95,6 +134,9 @@ class BaseEntity(object):
     def get_components_of_type(self, target_type):
         return [com for com_type, com in self._components.iteritems() if isinstance(com, target_type)]
 
+    def get_inspectable_components(self):
+        return [com for com in self._components.itervalues() if com.support_inspect()]
+
     def get_category(self):
         return self._category
 
@@ -117,15 +159,23 @@ class BaseEntity(object):
         return com
 
     def get_component(self, component_type):
+        if self._destroyed:
+            return None
         return self._components.get(component_type)
+
+    def get_component_names(self):
+        if self._destroyed:
+            return None
+        return '|'.join([str(v) for v in self._components.keys()])
 
     def on_save(self):
         data = {}
         for com_type, com in self._components.iteritems():
             key = get_component_name(com_type)
             value = com.on_save()
-            assert value != None, "unexpected, com[%s].on_save() returns None" % key
-            data[key] = value
+            assert not isinstance(value, type(None)), "unexpected, com[%s].on_save() returns `%s`" % (key, value)
+            if value != NO_STORAGE_FLAG:
+                data[key] = value
         return {
             'name': self.get_name(),
             'components': data,
@@ -139,9 +189,6 @@ class BaseEntity(object):
 
     def set_transform(self, transform):
         self._transform_com = transform
-
-    def on_destroy(self):
-        BaseEntity.destroy(self)
 
     def need_update(self):
         return len(self._updating_componets) > 0

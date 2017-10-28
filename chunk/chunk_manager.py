@@ -14,7 +14,7 @@ import traceback
 import chunk
 from map_generator import *
 import math
-from util import procedural_model
+from util import procedural_model, log
 from variable.global_vars import G
 from panda3d.core import Texture
 #from panda3d.core import Thread
@@ -27,6 +27,9 @@ DEFAULT_UV = (0, 0, 1., 1.)
 
 
 class LRUCache(object):
+    """
+    保留最近添加的Max_count个object
+    """
     def __init__(self, max_count=6):
         self._keys = []
         self._hash = {}
@@ -37,7 +40,7 @@ class LRUCache(object):
 
     def add(self, key, value):
         """
-        Add one, and probably returns one obsolete value.
+        添加一个kvpair，返回一个过期的kvpair。
         :param key:
         :param value:
         :return:
@@ -71,12 +74,13 @@ class LRUCache(object):
 
 
 class ChunkManager(object):
-    def __init__(self, chunk_title_count=10, chunk_tile_size=1.):
+    def __init__(self, chunk_title_count=16, chunk_tile_size=2., chunk_count=9):
         """
         :param chunk_title_count: chunk中的tile的数量
         :param chunk_tile_size: tile在世界中的尺寸
         :return:
         """
+        self._chunk_count = chunk_count
         self._storage_mgr = None
         self._texture_config = None
         self._chunk_tile_count = chunk_title_count
@@ -89,7 +93,7 @@ class ChunkManager(object):
         self._cache = LRUCache(11)  # TODO 根据机器内存大小动态设置一个合理的值。
 
         self._yielders = []
-        self._loading_chunk_keys = []
+        self._loading_chunk_keys = []  # 当前正在加载的ChunkIDs（加载分为很多帧进行的）
 
     def set_storage_mgr(self, storage_mgr):
         """
@@ -162,20 +166,17 @@ class ChunkManager(object):
     def rc2xy(self, r, c):
         return c * self._chunk_size, r * self._chunk_size
 
-    def _iter_chunk_keys(self, x, y, topn=9):
+    def _iter_chunk_keys(self, x, y):
         """
         按照某种规则，返回点(x,y)附近需要载入的方块。
         :param x:
         :param y:
-        :param topn: 返回距离主角最近的topn个chunk, 至少4个。
         :return:
         """
-        assert topn >= 4
         center_r, center_c = self.xy2rc(x, y)
-        max_size = 3  # 搜索半径
         result = []
-        for dr in range(-max_size, max_size+1):
-            for dc in range(-max_size, max_size+1):
+        for dr in range(-1, 18):
+            for dc in range(-2, 3):
                 r, c = center_r + dr, center_c + dc
                 tx, ty = self.rc2xy(r, c)
 
@@ -185,7 +186,7 @@ class ChunkManager(object):
                 result.append((dist_sq, (r, c)))
         # 排序并返回
         result.sort(key=lambda v: v[0])
-        for v in result[:topn]:
+        for v in result[:self._chunk_count]:
             yield v[1]
 
     def xy2world_rc(self, x, y):
@@ -220,6 +221,31 @@ class ChunkManager(object):
                 assert tile
                 tiles.append(tile)
         return tiles
+
+    def on_save(self):
+        """
+        保存当前所有信息到storage_mgr
+        :return:
+        """
+        for key, value in self._chunks.iteritems():
+            self._storage_mgr.set(str(key), value.on_save())
+
+    def destroy(self):
+        """
+        离开当前地图时调用，销毁所有chunk。
+        Warning：赢得先调用on_save保存当前地图。
+        :return:
+        """
+        for chk in self._chunks.itervalues():
+            chk.destroy()
+        # TODO 考虑正在载入的部分
+
+    def on_load(self):
+        """
+        不需要on_load函数，载入on_update时动态载入。
+        :return:
+        """
+        assert False
 
     def spawn_to_exist_chunk(self, x, y, config):
         """
@@ -302,7 +328,7 @@ class ChunkManager(object):
                 try:
                     self._iter.next()
                 except StopIteration, si:
-                    # 确保 _loading_chunk_keys 始终正确
+                    # 确保 _loading_chunk_keys 里面的值始终正确
                     chunk_self._loading_chunk_keys.remove(chunk_key)
                     raise si
         return wrapper(self._load_chunk_real(r, c))
@@ -315,6 +341,7 @@ class ChunkManager(object):
         """
         yield
         chunk_key = (r, c)
+        bx, by = self.rc2xy(r, c)
 
         # 从缓存中载入
         cache_value = self._cache.get(chunk_key)
@@ -325,8 +352,7 @@ class ChunkManager(object):
             self._chunks[chunk_key] = cache_value
             return
 
-        # 重新载入
-        bx, by = self.rc2xy(r, c)
+        # 从存档种载入
         new_chunk = chunk.Chunk(self, bx, by, self._chunk_tile_count, self._chunk_tile_size)
         yield
         if self._storage_mgr:
@@ -339,7 +365,6 @@ class ChunkManager(object):
                 new_chunk.set_ground_geom(ground_np, ground_data)
                 self._chunks[chunk_key] = new_chunk
                 return
-
         yield
 
         # 生成tile物体
@@ -359,7 +384,8 @@ class ChunkManager(object):
                     y = (ir + .5) * self._chunk_tile_size
                     new_obj = self._spawner.spawn(x, y, obj_info)
                     assert new_obj  # 确保spawner可以返回正确的值
-                    assert sys.getrefcount(new_obj) == 2  # 确保不会spawner自己不会占用引用
+                    ref_count = sys.getrefcount(new_obj)
+                    assert ref_count == 2, ref_count  # 确保spawner自己不会占用引用. new_obj占一个引用，参数占一个引用
                     new_chunk.add_object(new_obj)
                     assert sys.getrefcount(new_obj) == 3  # 确保被正确添加到了chunk中
 
@@ -382,7 +408,8 @@ class ChunkManager(object):
 
         # 删除过期的cache
         if cache_key:
-            data = cache_value.on_unload()
+            data = cache_value.on_save()
+            cache_value.destroy()
             if self._storage_mgr:
                 self._storage_mgr.set(str(cache_key), data)
 
@@ -394,9 +421,9 @@ class ChunkManager(object):
         :param dt: 单位秒
         :return: None
         """
-        #x, y = 0, 0
-        all_keys = set()
+
         # 更新并创建不存在的chunk
+        all_keys = set()
         for (r, c) in self._iter_chunk_keys(x, y):
             key = (r, c)
             all_keys.add(key)
@@ -406,11 +433,13 @@ class ChunkManager(object):
                     self._yielders.append(self._load_chunk(r, c))
                 continue
             existing_chunk.on_update(dt)
+
         # 删除不在附近的chunk
         for chunk_id in self._chunks.keys():
             if chunk_id not in all_keys:
                 self._unload_chunk(chunk_id)
-        # 执行yielders
+
+        # 执行yielders. 纯粹是性能优化，可暂时忽略。
         remained_yielders = []
         for yielder in self._yielders:
             try:
@@ -440,88 +469,6 @@ class ChunkManagerTest(unittest.TestCase):
         lru.add("k5", "v5")
         self.assertEqual(lru.debug_peek('k3'), None)
         self.assertEqual(lru.get('k10086'), None)
-
-    def test_rc2xy(self):
-        cm = ChunkManager(2, 1)
-        self.assertEqual(cm.rc2xy(1, 2), (4, 2))
-        self.assertEqual(cm.xy2rc(3.2, 4.4), (2, 1))
-        self.assertEqual(cm.rc2xy(-1, -2), (-4, -2))
-        self.assertEqual(cm.xy2rc(-3.2, -4.4), (-3, -2))
-        # 测试chunk数量始终可以保持在9个
-        import random
-        for i in range(32):
-            r = int(random.random() * 1000)
-            c = int(random.random() * 1000)
-            cm.on_update(r, c, 0.5)
-            self.assertEqual(len(set(cm.get_chunk_ids())), 9)
-
-    def test_random_update_pos(self):
-        # 测一下能不能随机update位置
-        cm = ChunkManager(10, 1)
-        import random
-        for i in range(100):
-            cm.on_update((random.random() - .5) * 100, (random.random() - .5) * 100, 0.5)
-
-    def test_update_pos(self):
-        cm = ChunkManager(10, 1)
-        cm.set_generator(TilesOnlyMapGenerator())
-        cm.on_update(4.5, 3.2, 0.5)
-
-        tiles = cm.get_around_tiles(2.1, 3.1, 1)
-        rc_list = [(t.r, t.c) for t in tiles]
-        self.assertEqual(set(rc_list), set([
-            (4, 1), (4, 2), (4, 3),
-            (3, 1), (3, 2), (3, 3),
-            (2, 1), (2, 2), (2, 3),
-        ]))
-
-        tiles = cm.get_around_tiles(9.1, 0.1, 1)
-        rc_list = [(t.r, t.c) for t in tiles]
-        self.assertEqual(set(rc_list), set([
-            (1, 8), (1, 9), (1, 0),
-            (0, 8), (0, 9), (0, 0),
-            (9, 8), (9, 9), (9, 0),
-        ]))
-
-        self.assertEqual(len(cm.get_around_tiles(2, 3, 1)), 9)
-        self.assertEqual(len(cm.get_around_tiles(2, 3, 3)), 49)
-        self.assertEqual(len(cm.get_around_tiles(5.1, 5.1, 20)), 900)
-
-    def test_spawn(self):
-        cm = ChunkManager(10, 1)
-        cm.set_generator(TilesOnlyMapGenerator())
-        cm.on_update(4.5, 3.2, 0.5)
-        box = cm.spawn_to_exist_chunk(3.2, 13.4, {'name': 'box'})
-        tiles = cm.get_around_tiles(3.2, 13.4, 0)
-        self.assertEqual(len(tiles), 1)
-        self.assertEqual(len(tiles[0].objects), 1)
-        self.assertEqual(box, tiles[0].objects[0])
-
-    def test_update(self):
-        cm = ChunkManager(10, 1)
-        cm.on_update(1.5, 3.5, .02)
-        expected_chunk_ids = (
-            (1, -1), (1, 0), (1, 1),
-            (0, -1), (0, 0), (0, 1),
-            (-1, -1), (-1, 0), (-1, 1),
-        )
-        self.assertEqual(set(cm.get_chunk_ids()), set(expected_chunk_ids))
-
-        cm.on_update(12.5, 9.5, .02)
-        expected_chunk_ids = (
-            (1, 0), (1, 1), (1, 2),
-            (0, 0), (0, 1), (0, 2),
-            (-1, 0), (-1, 1), (-1, 2),
-        )
-        self.assertEqual(set(cm.get_chunk_ids()), set(expected_chunk_ids))
-
-        cm.on_update(44.5, 55.5, .02)
-        expected_chunk_ids = (
-            (6, 3), (6, 4), (6, 5),
-            (5, 3), (5, 4), (5, 5),
-            (4, 3), (4, 4), (4, 5),
-        )
-        self.assertEqual(set(cm.get_chunk_ids()), set(expected_chunk_ids))
 
 
 if __name__ == '__main__':

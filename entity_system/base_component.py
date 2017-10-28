@@ -1,6 +1,9 @@
 #encoding: utf8
 
 
+from panda3d.core import Vec3
+
+
 # If there's nothing to be saved, then return NO_STORAGE flag, rather than None.
 # If on_save() forgets to return its data, then None is returned,
 # thus we can identify this error immediately.
@@ -8,8 +11,17 @@ NO_STORAGE_FLAG = "__NO_STORAE__"
 
 
 class BaseComponent(object):
+    def __init__(self):
+        self._entity_weak_ref = None
+
     def on_start(self):
         pass
+
+    def on_inspect(self):
+        pass
+
+    def support_inspect(self):
+        return self.on_inspect != BaseComponent.on_inspect
 
     def on_update(self, dt):
         """
@@ -62,3 +74,21 @@ class BaseComponent(object):
 
     def on_key(self, key):
         pass
+
+    def allow_action(self, tool, key_type):
+        """
+        返回是否可以执行该动作
+        :param tool:
+        :param key_type:
+        :return:
+        """
+        return True
+
+    def do_action(self, tool, key_type):
+        """
+        返回是否执行成功
+        :param tool:
+        :param key_type:
+        :return:
+        """
+        return False

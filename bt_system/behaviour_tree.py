@@ -15,6 +15,7 @@ import logging
 
 
 def log(*args):
+    return
     logging.warn(*args)
 
 
@@ -34,6 +35,7 @@ class ICompositeNode(INode):
         self._children = children
         self._index_to_run = 0
         self._abort_child_status = SUCCESS
+        self._is_loop = False
 
     def inner_on_finish(self, is_abort, status):
         self._index_to_run = 0
@@ -49,16 +51,21 @@ class ICompositeNode(INode):
             assert last_child_status != RUNNING
             self._index_to_run += 1
             if self._index_to_run >= len(self._children):
-                # 所有孩子都成功返回了
-                self.inner_on_finish(False, SUCCESS)
-            else:
-                # 孩子还没遍历完毕
-                if last_child_status == self._abort_child_status:
-                    # 但是到达了结束状态
+                if not self._is_loop:
+                    # 所有孩子都成功返回了
                     self.inner_on_finish(False, SUCCESS)
+                    return
                 else:
-                    # 还没到结束状态
-                    pass
+                    # 所有孩子都成功返回了，但是还需要再来一遍
+                    self._index_to_run = 0
+
+            # 孩子还没遍历完毕
+            if last_child_status == self._abort_child_status:
+                # 但是到达了结束状态，所以认为失败了
+                self.inner_on_finish(False, last_child_status)
+            else:
+                # 还没到结束状态
+                pass
 
     def get_child(self):
         assert False
@@ -88,6 +95,16 @@ class Sequence(ICompositeNode):
     def __init__(self, *children):
         ICompositeNode.__init__(self, children)
         self._abort_child_status = ABORT
+
+    def get_child(self):
+        return self._children[self._index_to_run]
+
+
+class Loop(ICompositeNode):
+    def __init__(self, *children):
+        ICompositeNode.__init__(self, children)
+        self._abort_child_status = ABORT
+        self._is_loop = True
 
     def get_child(self):
         return self._children[self._index_to_run]
@@ -302,7 +319,14 @@ class BehaviourTree(object):
         :param value:
         :return:
         """
+        old_value = self._context.get(key)
+        if old_value == value:
+            return
         self._context[key] = value
+        # 立即处理context变化事件
+        if not old_value:
+            self._set_current_action(None, True)
+            self._clear_conditions()
 
     def wait_for_seconds(self, seconds, next_status=SUCCESS):
         """
@@ -330,7 +354,11 @@ class BehaviourTree(object):
         :param event_name:
         :return:
         """
-        del self._events[event_name]
+        if event_name in self._events:
+            del self._events[event_name]
+            # 立即处理context变化事件
+            self._set_current_action(None, True)
+            self._clear_conditions()
 
     def pop_event(self, name):
         """
@@ -338,10 +366,11 @@ class BehaviourTree(object):
         :param name:
         :return:
         """
-        ev = self._events.get(name)
-        if ev:
+        if name in self._events:
+            ev = self._events[name]
             del self._events[name]
-        return ev
+            return True, ev
+        return False, None
 
     def peak_event(self, name):
         """
@@ -399,6 +428,7 @@ class BehaviourTree(object):
             self._root.inner_on_traverse()
             update_type = self.FULL_UPDATE
 
+        log('[bt] ==> %s', self._get_current())
         self._last_status = self._get_current().on_action()
         self._print_action('action')
         if self._last_status != RUNNING:

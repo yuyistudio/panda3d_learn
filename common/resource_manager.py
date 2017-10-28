@@ -23,4 +23,6 @@ class ResourceManager(object):
         texture = self._textures.get(filepath)
         if not texture:
             texture = G.loader.loadTexture(filepath)
+            self._textures[filepath] = texture
         return texture
+

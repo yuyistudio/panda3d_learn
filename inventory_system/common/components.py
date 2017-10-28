@@ -149,6 +149,32 @@ class ItemEquippable(BaseItemComponent):
         return self._equip_slots
 
 
+class ItemTool(BaseItemComponent):
+    name = 'tool'
+
+    def __init__(self, config):
+        """
+        action_types: {
+            "pick": {"duration": 10},
+            "cut": {"duration": 1},
+        }
+        :param config:
+        :return:
+        """
+        BaseItemComponent.__init__(self)
+        self._action_types = config.get('action_types')
+        self._distance = config.get('distance')
+
+    def get_action_types(self):
+        return self._action_types
+
+    def get_distance(self):
+        return self._distance
+
+    def on_use(self, action_type):
+        # 扣血
+        pass
+
 class ItemDuration(BaseItemComponent):
     name = 'duration'
 

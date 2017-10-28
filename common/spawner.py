@@ -46,7 +46,7 @@ class Spawner(object):
             }
         :return:
         """
-        ent = BaseEntity(storage_data)
+        ent = BaseEntity(storage_data['name'], storage_data)
         return ent
 
 

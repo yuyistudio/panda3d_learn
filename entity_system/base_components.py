@@ -6,6 +6,7 @@ import config as gconf
 from panda3d.core import Vec3, Texture
 import random
 import logging
+from util import log
 
 
 class ObjInspectable(BaseComponent):
@@ -40,36 +41,41 @@ class ObjModel(BaseComponent):
         physics_config = config.get('physics')
         self.physical_np = None
         if physics_config:
-            self.physical_np = G.physics_world.addBoxCollider(
+            self.physical_np, self.half_size = G.physics_world.add_cylinder_collider(
                 box, mass=0, bit_mask=gconf.BIT_MASK_OBJECT,
                 reparent=not self.is_static,
                 scale=self.collider_scale,
             )
-            self.physical_np.setTag("type", "box")
             body = self.physical_np.node()
             body.setDeactivationEnabled(True)
             body.setDeactivationTime(1.0)
+
         assert self.physical_np, '%s %s' % (config, physics_config)
 
     def on_start(self):
-        self.get_entity().set_transform(self)
+        self.physical_np.set_python_tag("type", "object")
+        self.physical_np.set_python_tag("entity", self._entity_weak_ref)
+        ent = self.get_entity()
+        ent.set_transform(self)
+        ent.set_radius(max(self.half_size[0], self.half_size[1]))
 
     def set_enabled(self, enabled):
-        G.physics_world.set_collider_enabled(self.physical_np, enabled)
+        if self.physical_np:
+            G.physics_world.set_collider_enabled(self.physical_np, enabled)
         if enabled:
+            self.physical_np.reparent_to(G.render)
             if self.is_static:
                 self.model_np.reparent_to(G.render)
-            else:
-                self.physical_np.reparent_to(G.render)
         else:
+            self.physical_np.detach_node()
             if self.is_static:
                 self.model_np.detach_node()
-            else:
-                self.physical_np.detach_node()
 
     def destroy(self):
         G.physics_world.remove_collider(self.physical_np)
         self.physical_np.remove_node()
+        if self.is_static:
+            self.model_np.remove_node()
 
     def on_save(self):
         pos = self.physical_np.get_pos()
@@ -116,6 +122,8 @@ class ObjAnimator(BaseComponent):
         return self._anim_np.getCurrentAnim()
 
     def on_start(self):
+        self._physical_np.set_python_tag('type', 'hero')
+        self._physical_np.set_python_tag('entity', self._entity_weak_ref)
         self.get_entity().set_transform(self)
 
     def set_enabled(self, enabled):
@@ -159,7 +167,8 @@ class ObjTransformController(BaseComponent):
     name = 'transform_controller'
 
     def __init__(self, config):
-        self._move_speed_lerper = lerp_util.FloatLerp(0, 0, max_value=6, lerp_factor=6.543210)
+        self._move_speed_lerper = lerp_util.FloatLerp(
+            0, 0, max_value=config.get('speed', 6), lerp_factor=6.543210)
         self._last_move_direction = Vec3(0, 0, 0)
         self.physics_np = None
         self.rigid_body = None
@@ -201,22 +210,6 @@ class ObjTransformController(BaseComponent):
         self.rigid_body = pnp.node()
 
 
-class ObjCameraTarget(BaseComponent):
-    name = 'camera_target'
-
-    def __init__(self, config):
-        self.cam_lerper = lerp_util.LerpVec3(4.3210)
-
-    def on_update(self, dt):
-        cam_pos = 30
-        factor1 = 1
-        factor2 = .7
-        target_pos = self.get_entity().get_pos() + Vec3(0, -cam_pos * factor1, cam_pos * factor2)
-        self.cam_lerper.set_target(target_pos)
-        lerped_pos = self.cam_lerper.lerp(dt)
-        G.cam.set_pos(lerped_pos)
-        G.cam.look_at(lerped_pos + Vec3(0, factor1, -factor2))
-
 from bt_system import behaviour_tree as bt
 
 
@@ -228,20 +221,6 @@ class ObjRandomHeroController(BaseComponent):
         self.controller = None
         self.target_pos = Vec3()
         self.bt = None
-        G.accept('space', self.hero_space)
-
-    def hero_space(self):
-        self.bt.add_event('hero_space', immediately=True)
-
-    def checking_event(self, btree):
-        ev = btree.pop_event('hero_space')
-        if ev:
-            self._animator.play('craft', once=True)
-            def anim_cb(event_name):
-                return bt.SUCCESS
-            btree.wait_for_event('anim.craft.done', anim_cb)
-            return bt.RUNNING
-        return bt.SUCCESS
 
     def on_start(self):
         ent = self.get_entity()
@@ -250,11 +229,10 @@ class ObjRandomHeroController(BaseComponent):
         self._animator.set_animator_handler(self._animator_handler)
 
         from bt_system import actions
-        bt_context = {'entity': ent}
+        bt_context = {'entity': self._entity_weak_ref}
         bt_root = bt.UntilFailure(
-            actions.ActionFn('event handling', self.checking_event),
             actions.ActionAnim('scared_anim', 'scared', {'done': 'success'}),
-            actions.ActionRandomTargetPos('find target', 3000),
+            actions.ActionRandomTargetPos('find target', 30),
             actions.ActionMove('moving'),
         )
         self.bt = bt.BehaviourTree(100, bt_root, bt_context)
@@ -272,30 +250,170 @@ class ObjRandomHeroController(BaseComponent):
             self._animator.play('idle', once=False)
 
 
-class ObjHeroController(BaseComponent):
-    name = 'hero_controller'
+class ObjLoot(BaseComponent):
+    name = 'loot'
 
     def __init__(self, config):
-        self.cam_lerper = lerp_util.LerpVec3(4.3210)
+        self._loots = config.get('objects')
+
+    def on_loot(self):
+        log.debug('loot: %s', self._loots)
+
+
+class ObjDestroyable(BaseComponent):
+    name = 'destroyable'
+
+    def __init__(self, config):
+        """
+        self._actions = {
+            "types": {
+                "pick": {"efficiency": 0.2},
+                "cut": {"efficiency": 1.0},
+                "hand": {"efficiency": 0.1},
+            },
+            "duration": 10,
+        }
+        :param config:
+        :return:
+        """
+        BaseComponent.__init__(self)
+        self._actions = config.get('types', dict())
+        self._duration = config.get('duration')
+        self._key = config.get('key', 'left')
+
+    def on_start(self):
+        self.get_entity().register_key_handler(self._key, self)
+
+    def allow_action(self, tool, key_type):
+        action_types = tool.get_action_types()
+        best_action_type, max_duration = self._get_best_action(action_types)
+        return best_action_type
+
+    def _get_best_action(self, action_types):
+        max_duration = 0
+        best_action_type = None
+        for action_type, tool_action_info in action_types.iteritems():
+            self_action_info = self._actions.get(action_type)
+            if not self_action_info:
+                continue
+            efficiency = self_action_info['efficiency']
+            action_duration = tool_action_info['duration']
+            if efficiency > 0:
+                duration = action_duration * efficiency
+                if duration > max_duration:
+                    max_duration = duration
+                    best_action_type = action_type
+        return best_action_type, max_duration
+
+    def do_action(self, tool, key_type):
+        if not self.allow_action(tool, key_type):
+            return False
+
+        action_types = tool.get_action_types()
+        best_action_type, max_duration = self._get_best_action(action_types)
+        if not best_action_type:
+            return False
+
+        log.debug("do action: %s", best_action_type)
+        self._duration -= max_duration
+        if self._duration < 0:
+            loot = self.get_entity().get_component(ObjLoot)
+            if loot:
+                loot.on_loot()
+            self.get_entity().destroy()
+        return True
+
+    def on_save(self):
+        return self._duration
+
+    def on_load(self, data):
+        self._duration = data
+
+
+class ObjInspectable(BaseComponent):
+    name = 'inspectable'
+
+    def __init__(self, config):
+        """
+        self._actions = {
+            "actions": {
+                "pick": {"efficiency": 0.1},
+                "cut": {"efficiency": 1.0},
+            },
+            "duration": 10,
+        }
+        :param config:
+        :return:
+        """
+        BaseComponent.__init__(self)
+        self._actions = config.get('actions', dict())
+        self._duration = config.get('duration')
+
+    def get_inspect_info(self):
+        return 'INSPECTABLE: %s' + self.get_entity().get_inspectable_components()
+
+
+class ObjHeroController(BaseComponent):
+    name = 'hero_controller'
+    DEFAULT_EVENT_DATA = 19930622
+
+    def __init__(self, config):
+        BaseComponent.__init__(self)
         self._animator = None
         self.controller = None
-        G.accept('mouse1', self.use_tool)
+        self.target_pos = Vec3()
+        self.bt = None
+
+    def _always_success(self, event_name):
+        return bt.SUCCESS
+
+    def checking_event(self, btree):
+        exists, ev = btree.pop_event('craft')
+        if exists:
+            self._animator.play('craft', once=True)
+            btree.wait_for_event('anim.craft.done', self._always_success)
+            return bt.RUNNING
+        return bt.FAIL
+
+    def set_context(self, k, v):
+        self.bt.set(k, v)
+
+    def emit_event(self, event_name, event_data=DEFAULT_EVENT_DATA):
+        # log.debug("event: %s, %s", event_name, event_data)
+        self.bt.add_event(event_name, event_data, immediately=True)
 
     def on_start(self):
         ent = self.get_entity()
         self.controller = ent.get_component(ObjTransformController)
         self._animator = ent.get_component(ObjAnimator)
+        self._animator.set_animator_handler(self._animator_handler)
 
-    def use_tool(self):
-        self.controller.stop()
-        self._animator.play('tool', once=True)
+        from bt_system import actions
+        bt_context = {'entity': self._entity_weak_ref}
+        bt_root = actions.Priority(
+            actions.ActionFn('event handling', self.checking_event),
+            actions.UntilFailure(
+                actions.ActionMove('hero moving', False),
+                actions.ActionHeroWork('hero do action'),
+
+            ),
+            actions.ActionIdle('hero idle', 1, 'fail'),
+            actions.Loop(
+                actions.ActionAnim('scared_anim', 'scared', {'done': 'success'}),
+                actions.ActionHeroWanderDecision('hero wandering', 20),
+            ),
+            actions.ActionDebugFatal('unexpected after loop node')
+        )
+        self.bt = bt.BehaviourTree(60, bt_root, bt_context)
+
+    def _animator_handler(self, anim_name, event_name):
+        self.bt.add_event('anim.%s.%s' % (anim_name, event_name), immediately=False)
 
     def on_update(self, dt):
+        self.bt.on_update(dt)
+
+        # animation control
         if self.controller.get_speed() > 0.4:
             self._animator.play('walk', once=True)
         elif self._animator.get_current_anim() == 'walk':
             self._animator.play('idle', once=False)
-        pos = G.game_mgr.operation.look_at_target
-        self.controller.look_at(pos)
-        dx, dy = keyboard.get_direction()
-        self.controller.move_towards(dx, dy, dt)

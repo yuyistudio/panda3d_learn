@@ -4,9 +4,10 @@ __author__ = 'Leon'
 
 from util.states import BaseGameState
 from variable.global_vars import G
-from common import game_manager, spawner, config_manager
+from common import game_manager, spawner, camera
 from panda3d.core import Vec3
 from assets.map_generators.perlin import *
+from util import log
 
 
 class MainMenuState(BaseGameState):
@@ -14,7 +15,7 @@ class MainMenuState(BaseGameState):
         BaseGameState.__init__(self, "menu.menu")
 
     def on_enter(self, last_name):
-        G.storage_mgr.load()
+        log.process("creating main menu")
         G.gui_mgr.create_main_menu()
         G.gui_mgr.set_event_handler('main_menu.new', self._start_new_game)
 
@@ -35,14 +36,11 @@ class GamePlayState(BaseGameState):
         self._main_menu_visible = False
 
     def on_enter(self, last_name):
-        G.config_mgr = config_manager.ConfigManager()
-        G.config_mgr.register_map_config('perlin', PerlinMapGenerator)
-        G.config_mgr.register_tile_config('default', 'assets/images/tiles/tiles.json')
-
-        if not getattr(G, 'spawner', ''):
-            G.spawner = spawner.Spawner()
-
+        log.process("creating game manager")
         G.game_mgr = game_manager.GameManager()
+        G.camera_mgr = camera.CameraManager()
+
+        log.process("creating inventory & menu")
         G.gui_mgr.create_inventory()
         G.gui_mgr.create_game_menu()
         G.gui_mgr.set_game_menu_visible(self._main_menu_visible)
@@ -67,10 +65,14 @@ class GamePlayState(BaseGameState):
         G.gui_mgr.set_game_menu_visible(self._main_menu_visible)
 
     def on_update(self, dt):
+        G.operation.on_update(dt)
         G.game_mgr.on_update(dt)
-
+        G.camera_mgr.look_at(G.operation.get_center_pos())
+        G.camera_mgr.on_update(dt)
 
 
 class GamePauseState(BaseGameState):
     def __init__(self):
         BaseGameState.__init__(self, "game.pause")
+
+

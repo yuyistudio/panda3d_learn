@@ -37,19 +37,50 @@ class PhysicsWorld(object):
     def remove_collider(self, physics_np):
         self.world.remove_rigid_body(physics_np.node())
 
-    def addBoxCollider(self, box_np, mass, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
-        if config.SHOW_BOUNDS:
-            box_np.showTightBounds()
+    def get_bounding_size(self, np, scale=1):
+        if not isinstance(scale, list):
+            scale = [scale] * 3
+        bb = np.getTightBounds()  # calulcate bounds before any rotation or scale
+        dx, dy, dz = abs(bb[0].getX() - bb[1].getX()) * scale[0], \
+                     abs(bb[0].getY() - bb[1].getY()) * scale[1], \
+                     abs(bb[0].getZ() - bb[1].getZ()) * scale[2]
+        return Vec3(dx, dy, dz)
 
-        bb = box_np.getTightBounds()  # calulcate bounds before any rotation or scale
-        dx, dy, dz = abs(bb[0].getX() - bb[1].getX()) * scale,\
-                     abs(bb[0].getY() - bb[1].getY()) * scale,\
-                     abs(bb[0].getZ() - bb[1].getZ()) * scale
-        half_size = Vec3(dx/2, dy/2, dz/2)
-        shape = BulletBoxShape(half_size)
+    def get_cylinder_shape(self, box_np, scale=1.):
+        bbox = self.get_bounding_size(box_np, scale)
+        shape = BulletCylinderShape(max(bbox[0], bbox[1]) * .5, bbox[2], Z_up)
+        return shape, bbox
+
+    def get_static_body(self, name, bit_mask, mass=10):
+        body = BulletRigidBodyNode(name)
+        body.setMass(mass)
+        body.set_static(False)
+        body.setIntoCollideMask(bit_mask)
+        return body
+
+    def add_body(self, body):
+        self.world.attach_rigid_body(body)
+
+    def remove_body(self, body):
+        self.world.remove_rigid_body(body)
+
+    def add_cylinder_collider(self, box_np, mass, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
+        shape, bbox = self.get_cylinder_shape(box_np, scale)
+        body = self.get_static_body('name', bit_mask, mass)
+        body.add_shape(shape, TransformState.makePos(Point3(0, 0, bbox[2] * .5)))
+        self.world.attach_rigid_body(body)
+        np = G.render.attachNewNode(body)
+        np.setName("physical_cylinder")
+        if reparent:
+            box_np.reparentTo(np)
+        return np, bbox
+
+    def addBoxCollider(self, box_np, mass, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
+        bbox = self.get_bounding_size(box_np, scale)
+        shape = BulletBoxShape(bbox * .5)
         body = BulletRigidBodyNode('physical_box_shapes')
         body.setMass(mass)
-        body.addShape(shape)
+        body.addShape(shape, TransformState.makePos(Point3(0, 0, bbox[2] * .5)))
         body.set_static(True)
         body.setIntoCollideMask(bit_mask)
 
@@ -59,12 +90,10 @@ class PhysicsWorld(object):
         np.setName("physical_box")
         body.setPythonTag("instance", np)
         np.setPos(box_np.getPos())
-        np.setZ(np, dz/2)
 
         if reparent:
-            box_np.setPos(Vec3(0, 0, -dz / 2))
             box_np.reparentTo(np)  # to sync the transform automatically
-        return np
+        return NodePath(np), bbox * .5
 
     def add_player_controller(self, view_np, bit_mask):
         height = 3.3
@@ -104,10 +133,17 @@ class PhysicsWorld(object):
         return np
 
     def set_collider_enabled(self, np, enabled):
+        node = np.node()
         if enabled:
-            self.world.attach_rigid_body(np.node())
+            if isinstance(node, BulletRigidBodyNode):
+                self.world.attach_rigid_body(node)
+            else:
+                self.world.attach_character(node)
         else:
-            self.world.remove_rigid_body(np.node())
+            if isinstance(node, BulletRigidBodyNode):
+                self.world.remove_rigid_body(node)
+            else:
+                self.world.remove_character(node)
 
     def addGround(self, friction=3):
         shape = BulletPlaneShape(Vec3(0, 0, 1), 0)
