@@ -227,31 +227,7 @@ class ObjRandomHeroController(BaseComponent):
         self._animator = None
         self.controller = None
         self.target_pos = Vec3()
-        self.bt = bt.BehaviourTree(3.5, bt.UntilFailure(
-            bt.ActionFn('checking events', self.checking_event),
-
-            bt.ActionFn('waiting', self.pause),
-            bt.ActionFn('scared', self.scared_anim),
-            bt.ActionFn('waiting2', self.pause2),
-
-            bt.UntilFailure(
-                bt.ActionFn('waiting', self.pause),
-                bt.ActionFn('scared', self.scared_anim),
-                bt.ActionFn('waiting2', self.pause2),
-                bt.ActionFn('find target', self.find_target),
-                bt.ActionFn('walking', self.walk_to_target),
-                bt.ActionFn('boring', self.boring_anim),
-                bt.ActionFn('pickup', self.pickup),
-            ),
-
-            bt.ActionFn('find target', self.find_target),
-            bt.ActionFn('walking', self.walk_to_target),
-            bt.Negate(bt.ActionFn('boring', self.boring_anim)),
-            bt.ActionFn('pickup', self.pickup),
-        ))
-
-        self._last_pos = Vec3()
-        self._linger_timer = 0
+        self.bt = None
         G.accept('space', self.hero_space)
 
     def hero_space(self):
@@ -267,80 +243,21 @@ class ObjRandomHeroController(BaseComponent):
             return bt.RUNNING
         return bt.SUCCESS
 
-    def pause(self, btree):
-        btree.wait_for_seconds(.5 + .2 * random.random())
-        return bt.RUNNING
-
-    def pause2(self, btree):
-        btree.wait_for_seconds(.2 + .3 * random.random())
-        return bt.RUNNING
-
-    def find_target(self, btree):
-        if random.random() < .5:
-            range = 11
-            target_pos = Vec3(random.random() * range, random.random() * range,
-                                   random.random() * range)
-            btree.set('target', target_pos)
-            return bt.SUCCESS
-        return bt.RUNNING
-
-    def walk_to_target(self, btree):
-        target_pos = btree.get('target')
-        if not target_pos:
-            return bt.FAIL
-        self.controller.look_at(target_pos)
-        current_pos = self.get_entity().get_pos()
-        dist_from_last = (current_pos - self._last_pos).length()
-        self._last_pos = current_pos
-        if dist_from_last < 0.01:
-            self._linger_timer += btree.dt
-            if self._linger_timer > .5:
-                self._linger_timer = 0
-                self.controller.stop()
-                return bt.FAIL
-
-        dir = target_pos - current_pos
-        if dir.length() > 1:
-            dir = dir.normalized()
-            self.controller.move_towards(dir[0], dir[1], btree.dt)
-            return bt.RUNNING
-        else:
-            self.controller.stop()
-            return bt.SUCCESS
-
-    def pickup(self, btree):
-        target_pos = btree.get('target')
-        if not target_pos:
-            return bt.FAIL
-        self.controller.stop()
-        self._animator.play('pickup', once=True)
-        def anim_cb(event_name):
-            if event_name == 'anim.pickup.done':
-                return bt.SUCCESS
-            return bt.RUNNING
-        btree.wait_for_event('anim.pickup.pickup', anim_cb)
-        btree.wait_for_event('anim.pickup.done', anim_cb)
-        return bt.RUNNING
-
-    def scared_anim(self, btree):
-        self._animator.play('scared', once=True)
-        def anim_cb(event_name):
-            return bt.SUCCESS
-        btree.wait_for_event('anim.scared.done', anim_cb)
-        return bt.RUNNING
-
-    def boring_anim(self, btree):
-        self._animator.play('boring', once=True)
-        def anim_cb(event_name):
-            return bt.SUCCESS
-        btree.wait_for_event('anim.boring.done', anim_cb)
-        return bt.RUNNING
-
     def on_start(self):
         ent = self.get_entity()
         self.controller = ent.get_component(ObjTransformController)
         self._animator = ent.get_component(ObjAnimator)
         self._animator.set_animator_handler(self._animator_handler)
+
+        from bt_system import actions
+        bt_context = {'entity': ent}
+        bt_root = bt.UntilFailure(
+            actions.ActionFn('event handling', self.checking_event),
+            actions.ActionAnim('scared_anim', 'scared', {'done': 'success'}),
+            actions.ActionRandomTargetPos('find target', 3000),
+            actions.ActionMove('moving'),
+        )
+        self.bt = bt.BehaviourTree(100, bt_root, bt_context)
 
     def _animator_handler(self, anim_name, event_name):
         self.bt.add_event('anim.%s.%s' % (anim_name, event_name), immediately=False)

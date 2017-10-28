@@ -17,7 +17,7 @@
                         "rate": 6
                     },
                     "scared": {
-                        "rate": 2
+                        "rate": 1
                     },
                     "boring":{"rate":2},
                     "tool": {
