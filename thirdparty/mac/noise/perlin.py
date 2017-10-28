@@ -25,7 +25,7 @@ _GRAD4 = ((0,1,1,1), (0,1,1,-1), (0,1,-1,1), (0,1,-1,-1),
 	(1,1,1,0), (1,1,-1,0), (1,-1,1,0), (1,-1,-1,0), 
 	(-1,1,1,0), (-1,1,-1,0), (-1,-1,1,0), (-1,-1,-1,0))
 
-# A lookup table to traverse the simplex around a given point in 4D. 
+# A lookup table to inner_on_traverse the simplex around a given point in 4D.
 # Details can be found where this table is used, in the 4D noise method. 
 _SIMPLEX = (
 	(0,1,2,3),(0,1,3,2),(0,0,0,0),(0,2,3,1),(0,0,0,0),(0,0,0,0),(0,0,0,0),(1,2,3,0), 
