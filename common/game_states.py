@@ -35,6 +35,9 @@ class GamePlayState(BaseGameState):
         BaseGameState.__init__(self, "game.play")
         self._main_menu_visible = False
 
+    def on_leave(self, next_name):
+        G.operation.set_enabled(False)
+
     def on_enter(self, last_name):
         log.process("creating game manager")
         G.game_mgr = game_manager.GameManager()
@@ -47,6 +50,8 @@ class GamePlayState(BaseGameState):
         G.gui_mgr.set_event_handler('game_menu.continue', self._handler_continue)
         G.gui_mgr.set_event_handler('game_menu.save', self._handler_save)
         G.gui_mgr.set_event_handler('game_menu.exit', self._handler_exit)
+
+        G.operation.set_enabled(True)
         G.accept("escape", self._handler_escape)
 
     def _handler_continue(self):
