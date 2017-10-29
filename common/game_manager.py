@@ -23,7 +23,7 @@ class GameManager(object):
         self.craft_mgr.register_recipes(json.loads(open('assets/json/recipes.json').read()))
 
         log.process('creating chunk manager')
-        self.chunk_mgr = chunk_manager.ChunkManager(chunk_title_count=16, chunk_tile_size=2, chunk_count=30)
+        self.chunk_mgr = chunk_manager.ChunkManager(chunk_title_count=8, chunk_tile_size=2, chunk_count=36)
         self.chunk_mgr.set_generator(G.config_mgr.get_map_config('perlin')())
         self.chunk_mgr.set_tile_texture(G.config_mgr.get_tile_config('default'))
         self.chunk_mgr.set_spawner(G.spawner)

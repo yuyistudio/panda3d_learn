@@ -41,6 +41,10 @@ class Chunk(object):
         self._ground_geom = None
         self._ground_data = None
 
+        self._static_models = []
+        self._root_np = None
+        self._is_doing_flatten = False
+
     def set_ground_geom(self, geom, data):
         self._ground_geom = geom
         self._ground_data = data
@@ -73,6 +77,20 @@ class Chunk(object):
 
     def _on_new_object_added(self, tile, new_obj):
         tile.objects.append(new_obj)
+        self._static_models.extend(new_obj.get_static_models())
+
+    def get_flatten_fn(self):
+        if self._is_doing_flatten:
+            """只flatten一次"""
+            return None
+        self._is_doing_flatten = True
+        return self.__do_flatten
+
+    def __do_flatten(self):
+        self._root_np = G.render.attach_new_node('root')
+        for model in self._static_models:
+            model.reparent_to(self._root_np)
+        G.loader.asyncFlattenStrong(self._root_np, True)
 
     def xy2rc(self, x, y):
         """
@@ -129,8 +147,10 @@ class Chunk(object):
         }
 
     def destroy(self):
-        self._ground_geom.remove_node()
-
+        if self._ground_geom:
+            self._ground_geom.remove_node()
+        if self._root_np:
+            self._root_np.remove_node()
         for tile in self._tiles:
             tile.destroy()
         self._tiles = None
@@ -177,12 +197,19 @@ class Chunk(object):
         self._update_iterator.next()
 
     def set_enabled(self, enabled):
+        assert self._root_np
+        assert self._enabled != enabled
         self._enabled = enabled
-        if self._ground_geom:
-            if enabled:
+        if enabled:
+            if self._ground_geom:
                 self._ground_geom.reparent_to(G.render)
-            else:
+            if self._root_np:
+                self._root_np.reparent_to(G.render)
+        else:
+            if self._ground_geom:
                 self._ground_geom.detach_node()
+            if self._root_np:
+                self._root_np.detach_node()
         for obj in self._iter_all_objects():
             obj.set_enabled(enabled)
 
@@ -191,8 +218,10 @@ class Chunk(object):
         if self._ground_geom:
             if enabled:
                 self._ground_geom.reparent_to(G.render)
+                self._root_np.reparent_to(G.render)
             else:
                 self._ground_geom.detach_node()
+                self._root_np.detach_node()
             yield
         for obj in self._iter_all_objects():
             obj.set_enabled(enabled)

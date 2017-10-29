@@ -3,7 +3,7 @@
 from base_component import BaseComponent
 from variable.global_vars import G
 import config as gconf
-from panda3d.core import Vec3, Texture
+from panda3d.core import Vec3, Texture, NodePath
 import random
 import logging
 from util import log
@@ -27,11 +27,11 @@ class ObjModel(BaseComponent):
         self.scale = config.get('scale', 1.)
         self.collider_scale = config.get('collider_scale', 1.)
         self.is_static = config.get('static', True)  # TODO 对于静态物体，可以合并模型进行优化. np.flatten_strong()
-        loader = G.loader
-        box = loader.loadModel(model_path)
-        box.setName("box")
-        box.reparentTo(G.render)
-        self.model_np = box
+
+        self.model_np = NodePath("unknown_model")
+        G.loader.loadModel(model_path).get_children().reparent_to(self.model_np)
+        self.model_np.setName("unknown")
+        # self.model_np.reparentTo(G.render)
         self.model_np.set_scale(self.scale)
         self.model_np.set_pos(Vec3(0, 0, 0))
         for tex in self.model_np.find_all_textures():
@@ -42,19 +42,21 @@ class ObjModel(BaseComponent):
         self.physical_np = None
         if physics_config:
             self.physical_np, self.half_size = G.physics_world.add_cylinder_collider(
-                box, mass=0, bit_mask=gconf.BIT_MASK_OBJECT,
+                self.model_np, mass=0, bit_mask=gconf.BIT_MASK_OBJECT,
                 reparent=not self.is_static,
                 scale=self.collider_scale,
             )
             body = self.physical_np.node()
             body.setDeactivationEnabled(True)
             body.setDeactivationTime(1.0)
-
-        assert self.physical_np, '%s %s' % (config, physics_config)
+        else:
+            self.half_size = G.physics_world.get_bounding_size(self.model_np) * .5
+        self.model_np.detach_node()
 
     def on_start(self):
-        self.physical_np.set_python_tag("type", "object")
-        self.physical_np.set_python_tag("entity", self._entity_weak_ref)
+        if self.physical_np:
+            self.physical_np.set_python_tag("type", "object")
+            self.physical_np.set_python_tag("entity", self._entity_weak_ref)
         ent = self.get_entity()
         ent.set_transform(self)
         ent.set_radius(max(self.half_size[0], self.half_size[1]))
@@ -63,22 +65,28 @@ class ObjModel(BaseComponent):
         if self.physical_np:
             G.physics_world.set_collider_enabled(self.physical_np, enabled)
         if enabled:
-            self.physical_np.reparent_to(G.render)
+            if self.physical_np:
+                self.physical_np.reparent_to(G.render)
             if self.is_static:
-                self.model_np.reparent_to(G.render)
+                pass # self.model_np.reparent_to(G.render)
         else:
-            self.physical_np.detach_node()
+            if self.physical_np:
+                self.physical_np.detach_node()
             if self.is_static:
-                self.model_np.detach_node()
+                pass  # self.model_np.detach_node()
 
     def destroy(self):
-        G.physics_world.remove_collider(self.physical_np)
-        self.physical_np.remove_node()
+        if self.physical_np:
+            G.physics_world.remove_collider(self.physical_np)
+            self.physical_np.remove_node()
         if self.is_static:
             self.model_np.remove_node()
 
     def on_save(self):
-        pos = self.physical_np.get_pos()
+        if self.physical_np:
+            pos = self.physical_np.get_pos()
+        else:
+            pos = self.model_np.get_pos()
         return pos.getX(), pos.getY(), pos.getZ()
 
     def on_load(self, data):
@@ -89,13 +97,18 @@ class ObjModel(BaseComponent):
         return self.model_np
 
     def set_pos(self, pos):
-        self.physical_np.set_pos(pos)
+        if self.physical_np:
+            self.physical_np.set_pos(pos)
         if self.is_static:
             self.model_np.set_pos(pos)
 
     def get_pos(self):
-        return self.physical_np.get_pos()
+        if self.physical_np:
+            return self.physical_np.get_pos()
+        return self.model_np.get_pos()
 
+    def get_static_models(self):
+        return [self.model_np]
 
 from common.animator import Animator
 

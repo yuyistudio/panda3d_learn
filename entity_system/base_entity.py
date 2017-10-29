@@ -56,17 +56,23 @@ class BaseEntity(object):
         assert key_type not in self._key_handlers
         self._key_handlers[key_type] = component
 
-    def allow_action(self, tool, action_type):
-        handler_com = self._key_handlers.get(action_type)
+    def allow_action(self, tool, key_type):
+        handler_com = self._key_handlers.get(key_type)
         if not handler_com:
             return False
-        return handler_com.allow_action(tool, action_type)
+        return handler_com.allow_action(tool, key_type)
 
-    def do_action(self, tool, action_type):
-        if not self.allow_action(tool, action_type):
+    def do_action(self, tool, key_type):
+        if not self.allow_action(tool, key_type):
             return False
-        handler_com = self._key_handlers.get(action_type)
-        return handler_com.do_action(tool, action_type)
+        handler_com = self._key_handlers.get(key_type)
+        return handler_com.do_action(tool, key_type)
+
+    def get_static_models(self):
+        models = []
+        for com in self._components.itervalues():
+            models.extend(com.get_static_models())
+        return models
 
     def set_radius(self, new_radius):
         self._radius = new_radius
