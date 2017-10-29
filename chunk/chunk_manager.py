@@ -21,7 +21,7 @@ from panda3d.core import Texture
 #assert Thread.isThreadingSupported()
 #from direct.stdpy import thread
 import time
-
+from direct.stdpy import threading
 
 DEFAULT_UV = (0, 0, 1., 1.)
 

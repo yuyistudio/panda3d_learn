@@ -39,9 +39,18 @@ class Game(object):
         G.context = context.Context()
 
         log.process("entering main loop")
+        G.accept('f1', self._render_analysis)
+        G.accept('f2', self._flatten)
+
         G.taskMgr.add(self.main_loop, name="main_loop")
         G.run()
         log.process("main loop finished")
+
+    def _flatten(self):
+        G.render.flatten_strong()
+
+    def _render_analysis(self):
+        G.render.analyze()
 
     def main_loop(self, task):
         dt = G.taskMgr.globalClock.getDt()

@@ -9,6 +9,7 @@ from entity_system.base_components import ObjHeroController
 
 class Operation(object):
     """
+    Operation为游戏游玩时的玩家输入。不包括主菜单。
     OP_xxx 表示一个接受玩家输入的操作
     """
     def __init__(self, op_target):
@@ -23,13 +24,20 @@ class Operation(object):
             'mouse1',
             self.OP_left_mouse_click, self.OP_left_mouse_hold,
         )
+        self._enabled = False
         G.taskMgr.add(self.mouse_pick_task, "mouse_pick")
         G.accept('space', self.OP_craft)
+
+    def set_enabled(self, enabled):
+        self._enabled = enabled
 
     def on_tool_hit(self, hit):
         self.target_ref().tool.onHit(hit)
 
     def mouse_pick_task(self, task):
+        if not self._enabled:
+            return
+
         self._hit_point = None
         self._hit_obj_ref = None
         # process triggers
@@ -73,11 +81,16 @@ class Operation(object):
         return Vec3()
 
     def on_update(self, dt):
+        if not self._enabled:
+            return
+
         self.OP_keyboard_move()
         self._left_key.on_update(dt)
 
     def _do_work_to_entity(self, entity, is_left_mouse):
 
+        if not self._enabled:
+            return
         from inventory_system.common.components import ItemTool
 
         fake_tool = ItemTool({
@@ -108,10 +121,16 @@ class Operation(object):
         return
 
     def OP_left_mouse_click(self):
+        if not self._enabled:
+            return
+
         log.debug("is click")
         self.OP_left_mouse_hold()
 
     def OP_left_mouse_hold(self):
+        if not self._enabled:
+            return
+
         if self._hit_obj_ref:
             obj = self._hit_obj_ref()
             if obj:
@@ -122,10 +141,16 @@ class Operation(object):
         self.controller.set_context('target_pos', self.mouse_pos_on_ground)
 
     def OP_craft(self):
+        if not self._enabled:
+            return
+
         self.controller.set_context('buffered_work', None)
         self.controller.emit_event('craft')
 
     def OP_keyboard_move(self):
+        if not self._enabled:
+            return
+
         dx, dy = keyboard.get_direction()
         if dx == 0 and dy == 0:
             self.controller.set_context('target_dir', None)

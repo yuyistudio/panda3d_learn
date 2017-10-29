@@ -68,7 +68,7 @@ class PhysicsWorld(object):
         shape, bbox = self.get_cylinder_shape(box_np, scale)
         body = self.get_static_body('name', bit_mask, mass)
         body.add_shape(shape, TransformState.makePos(Point3(0, 0, bbox[2] * .5)))
-        self.world.attach_rigid_body(body)
+        #self.world.attach_rigid_body(body)
         np = G.render.attachNewNode(body)
         np.setName("physical_cylinder")
         if reparent:
