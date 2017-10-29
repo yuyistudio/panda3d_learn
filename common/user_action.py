@@ -10,15 +10,30 @@ __author__ = 'Leon'
         1. 原地做出动作
         2. 走过去，并作出动作
 
-决定因素：
+三要素：
 1. 玩家工具：hand axe pickaxe
 2. 玩家行为：左击还是右击
 2. 目标entity的组件
-    1. 每个组件注册自己对于左击和右击的响应，并定义快速Action映射到左击还是右击
-    2. entity保证组件的响应不会冲突
-    3. 组件的回调：
-        1. allow_action( tool_component, action_type )
-            1. 返回行为类型，或者None/False表示不允许动作
-            2. 行为类型为 pickup cut 等
-        2. do_action( tool_component, action_type )
+
+entity component:
+1. allow_action(self, tool_component, key_type)
+2. do_action(self, tool_component, key_type)
+
+每个函数都拥有完备的三要素信息，所以可以完整判断接下来的行为。
+
+匹配规则:
+tool
+	action_type => duration
+component
+	action_type => efficiency
+key_type
+	left
+	right
+
+依次遍历所有component，调用allow_action，并返回所有响应的 
+	component，action_type，key_type, inspect_info
+	（此时可以强制检查 key_type 没有冲突）
+	这个规则可以做成通用的
+执行action的时候，再检查一遍
+	每个action执行的具体内容，可以重载
 """
