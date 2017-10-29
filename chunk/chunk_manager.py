@@ -19,9 +19,9 @@ from variable.global_vars import G
 from panda3d.core import Texture
 #from panda3d.core import Thread
 #assert Thread.isThreadingSupported()
-#from direct.stdpy import thread
 import time
-from direct.stdpy import threading
+from util import async_loader
+
 
 DEFAULT_UV = (0, 0, 1., 1.)
 
@@ -91,9 +91,14 @@ class ChunkManager(object):
         self._generator = DefaultRandomMapGenerator()
         self._spawner = DefaultEntitySpawner()
         self._cache = LRUCache(11)  # TODO 根据机器内存大小动态设置一个合理的值。
-
+        self._async_loader = async_loader.AsyncLoader()
+        self._async_loader.start()
         self._yielders = []
-        self._loading_chunk_keys = []  # 当前正在加载的ChunkIDs（加载分为很多帧进行的）
+        self._processing_chunk_keys = []  # 当前正在加载的ChunkIDs（加载分为很多帧进行的）
+
+        from collections import Counter
+        self._unload_counter = Counter()
+        self._counter_threshold = 200
 
     def set_storage_mgr(self, storage_mgr):
         """
@@ -176,7 +181,7 @@ class ChunkManager(object):
         center_r, center_c = self.xy2rc(x, y)
         result = []
         for dr in range(-1, 18):
-            for dc in range(-2, 3):
+            for dc in range(-3, 4):
                 r, c = center_r + dr, center_c + dc
                 tx, ty = self.rc2xy(r, c)
 
@@ -318,20 +323,25 @@ class ChunkManager(object):
     def _load_chunk(self, r, c):
         chunk_self = self
         chunk_key = (r, c)
-        self._loading_chunk_keys.append(chunk_key)
+        assert chunk_key not in self._processing_chunk_keys
+        self._processing_chunk_keys.append(chunk_key)
 
-        class wrapper(object):
-            def __init__(self, iterator):
-                self._iter = iterator
-
-            def next(self):
-                try:
-                    self._iter.next()
-                except StopIteration, si:
-                    # 确保 _loading_chunk_keys 里面的值始终正确
-                    chunk_self._loading_chunk_keys.remove(chunk_key)
-                    raise si
-        return wrapper(self._load_chunk_real(r, c))
+        def wrapper():
+            chunk = None
+            try:
+                assert not self._chunks.get(chunk_key)
+                chunk = self._load_chunk_real(r, c)
+                assert not self._chunks.get(chunk_key), '防止chunk._load_chunk_real()中不小心赋值'
+                if chunk:
+                    fn = chunk.get_flatten_fn()
+                    if fn:
+                        fn()
+            finally:
+                # 确保 _processing_chunk_keys 里面的值始终正确
+                chunk_self._processing_chunk_keys.remove(chunk_key)
+                if chunk:
+                    self._chunks[chunk_key] = chunk
+        self._async_loader.add_job(wrapper)
 
     def _load_chunk_real(self, r, c):
         """
@@ -339,22 +349,18 @@ class ChunkManager(object):
         :param c:
         :return:
         """
-        yield
         chunk_key = (r, c)
         bx, by = self.rc2xy(r, c)
 
         # 从缓存中载入
         cache_value = self._cache.get(chunk_key)
         if cache_value:
-            self._chunks[chunk_key] = cache_value
-            for _ in cache_value.set_enabled_with_yield(True):
-                yield
-            self._chunks[chunk_key] = cache_value
-            return
+            log.debug('from cache')
+            cache_value.set_enabled(True)
+            return cache_value
 
         # 从存档种载入
         new_chunk = chunk.Chunk(self, bx, by, self._chunk_tile_count, self._chunk_tile_size)
-        yield
         if self._storage_mgr:
             storage_data = self._storage_mgr.get(str((r, c)))
             if storage_data:
@@ -363,14 +369,11 @@ class ChunkManager(object):
                 assert ground_data
                 ground_np = self._create_ground_from_data(r, c, ground_data)
                 new_chunk.set_ground_geom(ground_np, ground_data)
-                self._chunks[chunk_key] = new_chunk
-                return
-        yield
+                return new_chunk
 
         # 生成tile物体
         plane_np, tiles_data = self._new_ground_geom(r, c)
         new_chunk.set_ground_geom(plane_np, tiles_data)
-        yield
 
         # 遍历所有tile生成物体
         br = r * self._chunk_tile_count
@@ -389,16 +392,27 @@ class ChunkManager(object):
                     new_chunk.add_object(new_obj)
                     assert sys.getrefcount(new_obj) == 3  # 确保被正确添加到了chunk中
 
-                    yield
-                    if random.random() < .4:  # 进一步减少加载压力
-                        yield
+        return new_chunk
 
-        self._chunks[chunk_key] = new_chunk
+    def _unload_chunk(self, chunk_key):
+        self._unload_counter[chunk_key] += 1
+        if self._unload_counter[chunk_key] < self._counter_threshold or random.random() < .5:
+            return
+        del self._unload_counter[chunk_key]
 
-    def _unload_chunk(self, chunk_id):
-        if chunk_id in self._loading_chunk_keys:
-            return  # 等待下次unload事件
+        chunk_self = self
+        if chunk_key in self._processing_chunk_keys:
+            return
+        self._processing_chunk_keys.append(chunk_key)
 
+        def wrapper():
+            try:
+                self._unload_chunk_real(chunk_key)
+            finally:
+                chunk_self._processing_chunk_keys.remove(chunk_key)
+        self._async_loader.add_job(wrapper)
+
+    def _unload_chunk_real(self, chunk_id):
         # 这里有个小坑，不能用 dict[key] = None 这种方式来删除key（在Lua中是可以的）。
         target_chunk = self._chunks[chunk_id]
         target_chunk.set_enabled(False)
@@ -426,11 +440,12 @@ class ChunkManager(object):
         all_keys = set()
         for (r, c) in self._iter_chunk_keys(x, y):
             key = (r, c)
+            del self._unload_counter[key]
             all_keys.add(key)
             existing_chunk = self._chunks.get(key)
             if not existing_chunk:
-                if (r, c) not in self._loading_chunk_keys:
-                    self._yielders.append(self._load_chunk(r, c))
+                if (r, c) not in self._processing_chunk_keys:
+                    self._load_chunk(r, c)
                 continue
             existing_chunk.on_update(dt)
 

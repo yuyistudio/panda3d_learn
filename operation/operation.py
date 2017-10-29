@@ -36,7 +36,7 @@ class Operation(object):
 
     def mouse_pick_task(self, task):
         if not self._enabled:
-            return
+            return task.cont
 
         self._hit_point = None
         self._hit_obj_ref = None
@@ -123,7 +123,6 @@ class Operation(object):
     def OP_left_mouse_click(self):
         if not self._enabled:
             return
-
         log.debug("is click")
         self.OP_left_mouse_hold()
 

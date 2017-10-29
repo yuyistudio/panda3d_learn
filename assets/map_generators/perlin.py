@@ -32,11 +32,11 @@ class PerlinMapGenerator(object):
             threshold, tile_type = item[0], item[1]
             if v < threshold:
                 self._tile['name'] = tile_type
-                if 'grass' in tile_type and False:
+                if 'grass' in tile_type or True:
                     rand_v = random.random()
                     if rand_v < .02:
                         self._obj_tpl['object'] = {'name': 'tree'}
-                    elif rand_v < .103:
+                    elif rand_v < .203:
                         self._obj_tpl['object'] = {'name': 'twig'}
                     else:
                         return self._tpl

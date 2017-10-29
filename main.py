@@ -58,5 +58,7 @@ class Game(object):
         G.state_mgr.on_update(dt)
         return task.cont
 
-
+from panda3d.core import loadPrcFileData
+loadPrcFileData("", "want-directtools #t")
+loadPrcFileData("", "want-tk #t")
 Game()

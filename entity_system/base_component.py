@@ -92,3 +92,10 @@ class BaseComponent(object):
         :return:
         """
         return False
+
+    def get_static_models(self):
+        """
+        返回静态models的列表
+        :return:
+        """
+        return []
