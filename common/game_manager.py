@@ -10,10 +10,15 @@ from craft_system import craft_manager
 from objects import ground, lights, box
 from panda3d.core import Vec3
 import json
+from util import fog
 
 
 class GameManager(object):
     def __init__(self):
+        f = .7
+        self.fog = fog.LinearFog(f, f, f, 70, 140)
+        G.accept('f', self.fog.switch)
+
         # TODO remove it
         self.hero = G.spawner.spawn_default('hero', 3, 3)
         G.operation.set_target(self.hero)
@@ -23,7 +28,7 @@ class GameManager(object):
         self.craft_mgr.register_recipes(json.loads(open('assets/json/recipes.json').read()))
 
         log.process('creating chunk manager')
-        self.chunk_mgr = chunk_manager.ChunkManager(chunk_title_count=8, chunk_tile_size=2, chunk_count=36)
+        self.chunk_mgr = chunk_manager.ChunkManager(chunk_title_count=10, chunk_tile_size=2, chunk_count=36)
         self.chunk_mgr.set_generator(G.config_mgr.get_map_config('perlin')())
         self.chunk_mgr.set_tile_texture(G.config_mgr.get_tile_config('default'))
         self.chunk_mgr.set_spawner(G.spawner)

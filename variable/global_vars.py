@@ -14,7 +14,7 @@ class GlobalVariable(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
         self.disableMouse()
-        self.render.setAntialias(AntialiasAttrib.MMultisample)
+        self.render.setAntialias(AntialiasAttrib.MAuto)
 
     def schedule(self, fn, name="update"):
         def _wrapper_(task):
