@@ -202,31 +202,34 @@ class Chunk(object):
         self._enabled = enabled
         if enabled:
             if self._ground_geom:
-                self._ground_geom.reparent_to(G.render)
+                self._ground_geom.show()
             if self._root_np:
-                self._root_np.reparent_to(G.render)
+                self._root_np.show()
         else:
             if self._ground_geom:
-                self._ground_geom.detach_node()
+                self._ground_geom.hide()
             if self._root_np:
-                self._root_np.detach_node()
+                self._root_np.hide()
         for obj in self._iter_all_objects():
             obj.set_enabled(enabled)
 
     def set_enabled_with_yield(self, enabled):
         self._enabled = enabled
-        if self._ground_geom:
-            if enabled:
-                self._ground_geom.reparent_to(G.render)
-                self._root_np.reparent_to(G.render)
-            else:
-                self._ground_geom.detach_node()
-                self._root_np.detach_node()
-            yield
+
+        if enabled:
+            if self._ground_geom:
+                self._ground_geom.show()
+            if self._root_np:
+                self._root_np.show()
+        else:
+            if self._ground_geom:
+                self._ground_geom.hide()
+            if self._root_np:
+                self._root_np.hide()
+        yield
         for obj in self._iter_all_objects():
             obj.set_enabled(enabled)
             yield
-        yield
 
     def _iter_all_objects(self):
         """

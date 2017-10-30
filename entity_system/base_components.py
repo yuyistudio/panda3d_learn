@@ -27,16 +27,15 @@ class ObjModel(BaseComponent):
         self.scale = config.get('scale', 1.)
         self.collider_scale = config.get('collider_scale', 1.)
         self.is_static = config.get('static', True)  # TODO 对于静态物体，可以合并模型进行优化. np.flatten_strong()
-
         self.model_np = NodePath("unknown_model")
         G.loader.loadModel(model_path).get_children().reparent_to(self.model_np)
         self.model_np.setName("unknown")
-        # self.model_np.reparentTo(G.render)
         self.model_np.set_scale(self.scale)
         self.model_np.set_pos(Vec3(0, 0, 0))
         for tex in self.model_np.find_all_textures():
             tex.set_magfilter(Texture.FT_nearest)
             tex.set_minfilter(Texture.FT_linear)
+        self.enabled = True
 
         physics_config = config.get('physics')
         self.physical_np = None
@@ -51,7 +50,6 @@ class ObjModel(BaseComponent):
             body.setDeactivationTime(1.0)
         else:
             self.half_size = G.physics_world.get_bounding_size(self.model_np) * .5
-        self.model_np.detach_node()
 
     def on_start(self):
         if self.physical_np:
@@ -62,18 +60,10 @@ class ObjModel(BaseComponent):
         ent.set_radius(max(self.half_size[0], self.half_size[1]))
 
     def set_enabled(self, enabled):
+        assert self.enabled != enabled
+        self.enabled = enabled
         if self.physical_np:
             G.physics_world.set_collider_enabled(self.physical_np, enabled)
-        if enabled:
-            if self.physical_np:
-                self.physical_np.reparent_to(G.render)
-            if self.is_static:
-                pass # self.model_np.reparent_to(G.render)
-        else:
-            if self.physical_np:
-                self.physical_np.detach_node()
-            if self.is_static:
-                pass  # self.model_np.detach_node()
 
     def destroy(self):
         if self.physical_np:

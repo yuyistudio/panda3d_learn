@@ -51,10 +51,11 @@ class PhysicsWorld(object):
         shape = BulletCylinderShape(max(bbox[0], bbox[1]) * .5, bbox[2], Z_up)
         return shape, bbox
 
-    def get_static_body(self, name, bit_mask, mass=0):
+    def get_static_body(self, name, bit_mask, mass):
         body = BulletRigidBodyNode(name)
         body.setMass(mass)
-        body.set_static(True)
+        if not mass:
+            body.set_static(True)
         body.setIntoCollideMask(bit_mask)
         return body
 
@@ -64,15 +65,15 @@ class PhysicsWorld(object):
     def remove_body(self, body):
         self.world.remove_rigid_body(body)
 
-    def add_cylinder_collider(self, box_np, mass, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
+    def add_cylinder_collider(self, box_np, mass=0, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
         shape, bbox = self.get_cylinder_shape(box_np, scale)
         body = self.get_static_body('name', bit_mask, mass)
         body.add_shape(shape, TransformState.makePos(Point3(0, 0, bbox[2] * .5)))
-        self.world.attach_rigid_body(body)
         np = G.render.attachNewNode(body)
         np.setName("physical_cylinder")
         if reparent:
             box_np.reparentTo(np)
+        self.world.attach_rigid_body(body)
         return np, bbox
 
     def addBoxCollider(self, box_np, mass, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
@@ -102,10 +103,10 @@ class PhysicsWorld(object):
         player_node = BulletCharacterControllerNode(shape, 0.4, 'Player')
         player_np = G.render.attach_new_node(player_node)
         player_np.setCollideMask(bit_mask)
-        self.world.attachCharacter(player_np.node())
         if view_np:
             view_np.reparent_to(player_np)
             view_np.set_pos(Vec3(0, 0, height * -.5))
+        self.world.attachCharacter(player_np.node())
         return player_np
 
     def addBoxTrigger(self, box_np, bit_mask):

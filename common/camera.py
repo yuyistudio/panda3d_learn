@@ -11,7 +11,7 @@ from variable.global_vars import G
 class CameraManager(object):
     def __init__(self):
         self.cam_lerper = lerp_util.LerpVec3(4.3210)
-        self.cam_pos_lerper = lerp_util.FloatLerp(30, 15, 40, 6.666)
+        self.cam_pos_lerper = lerp_util.FloatLerp(30, 15, 2000 if G.debug else 40, 6.666)
         self.target_cam_pos = 30
 
         self.factor1 = 1
