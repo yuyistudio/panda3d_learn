@@ -13,8 +13,15 @@ class FloatLerp(object):
         self.lerp_factor = lerp_factor
         self.target_value = init_value
 
+    def change_target(self, target_value):
+        self.target_value = max(self.min_value, min(self.max_value, self.target_value + target_value))
+
+    def change_value(self, change_value):
+        self.value += change_value
+        self.target_value = max(self.min_value, min(self.max_value, self.target_value + change_value))
+
     def set_target(self, target_value):
-        self.target_value = target_value
+        self.target_value = max(self.min_value, min(self.max_value, target_value))
 
     def to_max(self):
         self.target_value = self.max_value

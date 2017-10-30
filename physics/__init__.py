@@ -51,10 +51,10 @@ class PhysicsWorld(object):
         shape = BulletCylinderShape(max(bbox[0], bbox[1]) * .5, bbox[2], Z_up)
         return shape, bbox
 
-    def get_static_body(self, name, bit_mask, mass=10):
+    def get_static_body(self, name, bit_mask, mass=0):
         body = BulletRigidBodyNode(name)
         body.setMass(mass)
-        body.set_static(False)
+        body.set_static(True)
         body.setIntoCollideMask(bit_mask)
         return body
 
@@ -68,7 +68,7 @@ class PhysicsWorld(object):
         shape, bbox = self.get_cylinder_shape(box_np, scale)
         body = self.get_static_body('name', bit_mask, mass)
         body.add_shape(shape, TransformState.makePos(Point3(0, 0, bbox[2] * .5)))
-        #self.world.attach_rigid_body(body)
+        self.world.attach_rigid_body(body)
         np = G.render.attachNewNode(body)
         np.setName("physical_cylinder")
         if reparent:
@@ -145,7 +145,7 @@ class PhysicsWorld(object):
             else:
                 self.world.remove_character(node)
 
-    def addGround(self, friction=3):
+    def addGround(self, friction=0.1):
         shape = BulletPlaneShape(Vec3(0, 0, 1), 0)
         node = BulletRigidBodyNode('physical_ground_shapes')
         node.addShape(shape)
