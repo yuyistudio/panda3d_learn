@@ -36,7 +36,7 @@ class PerlinMapGenerator(object):
                     rand_v = random.random()
                     if rand_v < .02:
                         self._obj_tpl['object'] = {'name': 'tree'}
-                    elif rand_v < .203:
+                    elif rand_v < .03:
                         self._obj_tpl['object'] = {'name': 'twig'}
                     else:
                         return self._tpl

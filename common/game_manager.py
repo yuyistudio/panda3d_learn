@@ -55,7 +55,7 @@ class GameManager(object):
         self.chunk_mgr.set_storage_mgr(self.scene)
 
         self._ground = ground.create()  # TODO remove it
-        self._lights = lights.create()  # TODO remove it
+        lights.create()  # TODO remove it
 
     def save_scene(self):
         self.chunk_mgr.on_save()
@@ -65,8 +65,8 @@ class GameManager(object):
     def on_update(self, dt):
         # TODO remove it
         self.hero.on_update(dt)
-
         pos = G.operation.get_center_pos()
+        G.dir_light.set_pos(pos)
         self.chunk_mgr.on_update(pos[0], pos[1], dt)
 
 

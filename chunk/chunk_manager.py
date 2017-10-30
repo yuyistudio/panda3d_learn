@@ -98,7 +98,7 @@ class ChunkManager(object):
 
         from collections import Counter
         self._unload_counter = Counter()
-        self._counter_threshold = 200
+        self._counter_threshold = 0 if G.debug else 200
 
     def set_storage_mgr(self, storage_mgr):
         """
@@ -355,7 +355,6 @@ class ChunkManager(object):
         # 从缓存中载入
         cache_value = self._cache.get(chunk_key)
         if cache_value:
-            log.debug('from cache')
             cache_value.set_enabled(True)
             return cache_value
 

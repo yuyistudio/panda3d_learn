@@ -19,19 +19,23 @@ def add_point(parent_np):
     parent_np.setLight(plnp)
     return plnp
 
+
 def add_directional(parent_np):
-    light = DirectionalLight("Diretional2")
+    light = DirectionalLight("DiretionalSunLight")
     light_np = parent_np.attachNewNode(light)
     parent_np.setLight(light_np)
-    light_np.setPos(10, -10, 10)
+    light_np.setPos(30, -30, 30)
     light_np.look_at(0, 0, 0)
     light.setScene(parent_np)
     light.setShadowCaster(True)
     light.setColor(LVector4(1, 1, 1, 1))
-    light.getLens(0).setFilmSize(50, 50)  # 设置光照范围.(横向、纵向)
+    sun_range = 90
+    light.getLens(0).setFilmSize(sun_range, sun_range)  # 设置光照范围.(横向、纵向)
     if config.SHOW_LIGHT_FRUSTUM:
         light.showFrustum()
-    return light_np
+    wrapper_np = NodePath('sun_light')
+    light_np.reparent_to(wrapper_np)
+    return wrapper_np
 
 
 def add_spot(parent_np):

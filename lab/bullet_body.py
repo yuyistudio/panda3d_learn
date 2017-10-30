@@ -60,6 +60,8 @@ def test2():
             body.set_static(True)
             body.set_deactivation_enabled(True)
             body.setIntoCollideMask(1)
+
+            world.remove_rigid_body(body)  # generates a warning
             world.attachRigidBody(body)
 
             shape = BulletBoxShape(Vec3(1, 1, 1))
