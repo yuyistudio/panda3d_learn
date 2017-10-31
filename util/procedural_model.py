@@ -3,7 +3,7 @@
 from panda3d.core import *
 
 
-def create_plane(cell_size, cell_count, uv_fn):
+def create_plane(cell_size, cell_count, tiled_map):
     """
     :param uv_fn:
         uv_fn(r,c) returns (u1,v1,u2,v2)
@@ -16,25 +16,196 @@ def create_plane(cell_size, cell_count, uv_fn):
     texcoord = GeomVertexWriter(vdata, 'texcoord')
     prim = GeomTriangles(Geom.UHStatic)
 
+
     point_count = 0
     for r in range(cell_count):
         for c in range(cell_count):
             by, bx = r * cell_size, c * cell_size
-            u1, v1, u2, v2 = uv_fn(r, c)
+            level = tiled_map[(r, c)]
+            height = level['level'] * cell_size
 
-            vertex.addData3f(bx+0, by+0, 0)
+            # top plate
+            u1, v1, u2, v2 = level['uv']
+            vertex.addData3f(bx+0, by+0, height)
             texcoord.addData2f(u1, v1)
-            vertex.addData3f(bx+cell_size, by+0, 0)
+            vertex.addData3f(bx+cell_size, by+0, height)
             texcoord.addData2f(u2, v1)
-            vertex.addData3f(bx+cell_size, by+cell_size, 0)
+            vertex.addData3f(bx+cell_size, by+cell_size, height)
             texcoord.addData2f(u2, v2)
-            vertex.addData3f(bx+0, by+cell_size, 0)
+            vertex.addData3f(bx+0, by+cell_size, height)
             texcoord.addData2f(u1, v2)
 
             prim.addVertices(point_count, point_count+1, point_count+2)
             prim.addVertices(point_count, point_count+2, point_count+3)
 
             point_count += 4
+
+
+
+            # side plates
+            u1, v1, u2, v2 = level['side_uv']
+
+            if level['level'] > 0.01:
+                # 遍历四个方向
+                # left
+                dr = 0
+                dc = -1
+                side_r = r + dr
+                side_c = c + dc
+                tile = tiled_map.get((side_r, side_c))
+                if tile and tile['level'] < 0.01:
+                    vertex.addData3f(bx + 0, by + cell_size, 0)
+                    texcoord.addData2f(u1, v1)
+                    vertex.addData3f(bx + 0, by + 0, 0)
+                    texcoord.addData2f(u2, v1)
+                    vertex.addData3f(bx + 0, by + 0, height)
+                    texcoord.addData2f(u2, v2)
+                    vertex.addData3f(bx + 0, by + cell_size, height)
+                    texcoord.addData2f(u1, v2)
+
+                    prim.addVertices(point_count, point_count + 1, point_count + 2)
+                    prim.addVertices(point_count, point_count + 2, point_count + 3)
+                    point_count += 4
+                # right
+                dr = 0
+                dc = 1
+                side_r = r + dr
+                side_c = c + dc
+                tile = tiled_map.get((side_r, side_c))
+                if tile and tile['level'] < 0.01:
+                    vertex.addData3f(bx + cell_size, by + 0, height)
+                    texcoord.addData2f(u1, v1)
+                    vertex.addData3f(bx + cell_size, by + 0, 0)
+                    texcoord.addData2f(u2, v1)
+                    vertex.addData3f(bx + cell_size, by + cell_size, 0)
+                    texcoord.addData2f(u2, v2)
+                    vertex.addData3f(bx + cell_size, by + cell_size, height)
+                    texcoord.addData2f(u1, v2)
+
+                    prim.addVertices(point_count, point_count + 1, point_count + 2)
+                    prim.addVertices(point_count, point_count + 2, point_count + 3)
+                    point_count += 4
+                # bottom
+                dr = -1
+                dc = 0
+                side_r = r + dr
+                side_c = c + dc
+                tile = tiled_map.get((side_r, side_c))
+                if tile and tile['level'] < 0.01:
+                    vertex.addData3f(bx + cell_size, by + 0, 0)
+                    texcoord.addData2f(u1, v1)
+                    vertex.addData3f(bx + cell_size, by + 0, height)
+                    texcoord.addData2f(u1, v2)
+                    vertex.addData3f(bx + 0, by + 0, height)
+                    texcoord.addData2f(u2, v2)
+                    vertex.addData3f(bx + 0, by + 0, 0)
+                    texcoord.addData2f(u2, v1)
+
+                    prim.addVertices(point_count, point_count + 1, point_count + 2)
+                    prim.addVertices(point_count, point_count + 2, point_count + 3)
+                    point_count += 4
+                # top
+                dr = 1
+                dc = 0
+                side_r = r + dr
+                side_c = c + dc
+                tile = tiled_map.get((side_r, side_c))
+                if tile and tile['level'] < 0.01:
+                    vertex.addData3f(bx + cell_size, by + cell_size, 0)
+                    texcoord.addData2f(u1, v1)
+                    vertex.addData3f(bx + 0, by + cell_size, 0)
+                    texcoord.addData2f(u2, v1)
+                    vertex.addData3f(bx + 0, by + cell_size, height)
+                    texcoord.addData2f(u2, v2)
+                    vertex.addData3f(bx + cell_size, by + cell_size, height)
+                    texcoord.addData2f(u1, v2)
+
+                    prim.addVertices(point_count, point_count + 1, point_count + 2)
+                    prim.addVertices(point_count, point_count + 2, point_count + 3)
+                    point_count += 4
+
+            if level['level'] < -0.01:
+                # 遍历四个方向
+                # left
+                dr = 0
+                dc = -1
+                side_r = r + dr
+                side_c = c + dc
+                tile = tiled_map.get((side_r, side_c))
+                if tile and tile['level'] > -0.01:
+                    print tile['level']
+                    vertex.addData3f(bx + 0, by + 0, 0)
+                    texcoord.addData2f(u1, v1)
+                    vertex.addData3f(bx + 0, by + 0, height)
+                    texcoord.addData2f(u2, v1)
+                    vertex.addData3f(bx + 0, by + cell_size, height)
+                    texcoord.addData2f(u2, v2)
+                    vertex.addData3f(bx + 0, by + cell_size, 0)
+                    texcoord.addData2f(u1, v2)
+
+                    prim.addVertices(point_count, point_count + 1, point_count + 2)
+                    prim.addVertices(point_count, point_count + 2, point_count + 3)
+                    point_count += 4
+                # right
+                dr = 0
+                dc = 1
+                side_r = r + dr
+                side_c = c + dc
+                tile = tiled_map.get((side_r, side_c))
+                if tile and tile['level'] > -0.01:
+                    vertex.addData3f(bx + cell_size, by + 0, height)
+                    texcoord.addData2f(u1, v1)
+                    vertex.addData3f(bx + cell_size, by + 0, 0)
+                    texcoord.addData2f(u2, v1)
+                    vertex.addData3f(bx + cell_size, by + cell_size, 0)
+                    texcoord.addData2f(u2, v2)
+                    vertex.addData3f(bx + cell_size, by + cell_size, height)
+                    texcoord.addData2f(u1, v2)
+
+                    prim.addVertices(point_count, point_count + 1, point_count + 2)
+                    prim.addVertices(point_count, point_count + 2, point_count + 3)
+                    point_count += 4
+                # bottom
+                dr = -1
+                dc = 0
+                side_r = r + dr
+                side_c = c + dc
+                tile = tiled_map.get((side_r, side_c))
+                if tile and tile['level'] > -0.01:
+                    vertex.addData3f(bx + cell_size, by + 0, 0)
+                    texcoord.addData2f(u1, v1)
+                    vertex.addData3f(bx + cell_size, by + 0, height)
+                    texcoord.addData2f(u1, v2)
+                    vertex.addData3f(bx + 0, by + 0, height)
+                    texcoord.addData2f(u2, v2)
+                    vertex.addData3f(bx + 0, by + 0, 0)
+                    texcoord.addData2f(u2, v1)
+
+                    prim.addVertices(point_count, point_count + 1, point_count + 2)
+                    prim.addVertices(point_count, point_count + 2, point_count + 3)
+                    point_count += 4
+                # top
+                dr = 1
+                dc = 0
+                side_r = r + dr
+                side_c = c + dc
+                tile = tiled_map.get((side_r, side_c))
+                if tile and tile['level'] > -0.01:
+                    vertex.addData3f(bx + cell_size, by + cell_size, 0)
+                    texcoord.addData2f(u1, v1)
+                    vertex.addData3f(bx + 0, by + cell_size, 0)
+                    texcoord.addData2f(u2, v1)
+                    vertex.addData3f(bx + 0, by + cell_size, height)
+                    texcoord.addData2f(u2, v2)
+                    vertex.addData3f(bx + cell_size, by + cell_size, height)
+                    texcoord.addData2f(u1, v2)
+
+                    prim.addVertices(point_count, point_count + 1, point_count + 2)
+                    prim.addVertices(point_count, point_count + 2, point_count + 3)
+                    point_count += 4
+
+
+
 
     geom = Geom(vdata)
     geom.addPrimitive(prim)

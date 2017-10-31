@@ -80,6 +80,8 @@ class ChunkManager(object):
         :param chunk_tile_size: tile在世界中的尺寸
         :return:
         """
+        self._tile_not_found_exception = Exception('tile not found')
+
         self._chunk_count = chunk_count
         self._storage_mgr = None
         self._texture_config = None
@@ -272,16 +274,7 @@ class ChunkManager(object):
         mapping = {}
         for item in data['tiles']:
             mapping[(item[0], item[1])] = item[2]
-
-        def uv_fn(tile_r, tile_c):
-            name = mapping.get((tile_r, tile_c))
-            if not name:
-                assert name, 'no data found for tile (%s,%s)' % (tile_r, tile_c)
-                return DEFAULT_UV
-            uv = self._texture_config['tiles'].get(name)
-            assert uv, 'texture config not found: %s, from %s' % (name, self._texture_config)
-            return uv
-        plane_geom_node = procedural_model.create_plane(self._chunk_tile_size, self._chunk_tile_count, uv_fn)
+        plane_geom_node = procedural_model.create_plane(self._chunk_tile_size, self._chunk_tile_count, mapping)
         plane_np = G.render.attach_new_node(plane_geom_node)
         plane_np.set_pos(Vec3(c * self._chunk_size, r * self._chunk_size, 0))
         texture_file = data['texture']
@@ -292,21 +285,29 @@ class ChunkManager(object):
         return plane_np
 
     def _new_ground_geom(self, r, c):
-        tiles_data = []
+        tiles_data = []  # 村ground数据，放到chunk里面存折，后面载入的时候会用到.
 
         def uv_fn(tile_r, tile_c):
             info = self._generator.get(r * self._chunk_tile_count + tile_r, c * self._chunk_tile_count + tile_c)
             assert info
-            name = info.get('tile', {}).get('name')
-            tiles_data.append((tile_r, tile_c, name))  # 记录tile数据，以便日后使用
+            tile = info.get('tile', {})
+            name = tile.get('name')
+            side_name = tile.get('side_name')
             if not name:
                 assert name, 'tile has no name: %s' % info
                 return DEFAULT_UV
             uv = self._texture_config['tiles'].get(name)
+            side_uv = self._texture_config['tiles'].get(side_name) or uv
             assert uv, 'texture config not found: %s, from %s' % (name, self._texture_config)
-            return uv
-
-        plane_geom_node = procedural_model.create_plane(self._chunk_tile_size, self._chunk_tile_count, uv_fn)
+            level = tile.get('level', 0)
+            ground_data = {'uv': uv, 'level': level, 'side_uv': side_uv}
+            tiles_data.append((tile_r, tile_c, ground_data))
+            return ground_data
+        cache = {}
+        for i in range(-1, self._chunk_tile_count+1):
+            for j in range(-1, self._chunk_tile_count+1):
+                cache[(i, j)] = uv_fn(i, j)
+        plane_geom_node = procedural_model.create_plane(self._chunk_tile_size, self._chunk_tile_count, cache)
         plane_np = G.render.attach_new_node(plane_geom_node)
         plane_np.set_pos(Vec3(c * self._chunk_size, r * self._chunk_size, 0))
         texture_file = None
