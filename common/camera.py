@@ -29,7 +29,25 @@ class CameraManager(object):
     def on_update(self, dt):
         lerped_pos = self.cam_lerper.lerp(dt)
         cam_pos = self.cam_pos_lerper.lerp(dt)
-        self._pos_offset = Vec3(0, -cam_pos * self.factor1, cam_pos * self.factor2)
+        dir = '+y'
+        if dir == '+y':
+            sign = 1
+            self._pos_offset = Vec3(0, -sign*cam_pos * self.factor1, cam_pos * self.factor2)
+            G.cam.set_pos(lerped_pos)
+            G.cam.look_at(lerped_pos + Vec3(0, sign*self.factor1, -self.factor2))
+        if dir == '-y':
+            sign = -1
+            self._pos_offset = Vec3(0, -sign * cam_pos * self.factor1, cam_pos * self.factor2)
+            G.cam.set_pos(lerped_pos)
+            G.cam.look_at(lerped_pos + Vec3(0, sign * self.factor1, -self.factor2))
+        if dir == '+x':
+            sign = 1
+            self._pos_offset = Vec3(-sign * cam_pos * self.factor1, 0, cam_pos * self.factor2)
+            G.cam.set_pos(lerped_pos)
+            G.cam.look_at(lerped_pos + Vec3(sign * self.factor1, 0, -self.factor2))
+        if dir == '-x':
+            sign = -1
+            self._pos_offset = Vec3(-sign * cam_pos * self.factor1, 0, cam_pos * self.factor2)
+            G.cam.set_pos(lerped_pos)
+            G.cam.look_at(lerped_pos + Vec3(sign * self.factor1, 0, -self.factor2))
 
-        G.cam.set_pos(lerped_pos)
-        G.cam.look_at(lerped_pos + Vec3(0, self.factor1, -self.factor2))

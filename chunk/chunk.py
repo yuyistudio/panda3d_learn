@@ -79,14 +79,25 @@ class Chunk(object):
         tile.objects.append(new_obj)
         self._static_models.extend(new_obj.get_static_models())
 
-    def get_flatten_fn(self):
+    def get_flatten_fn(self, async=True):
         if self._is_doing_flatten:
             """只flatten一次"""
             return None
         self._is_doing_flatten = True
-        return self.__do_flatten
+        if async:
+            return self.__do_flatten_async
+        return self.__do_flatten_sync
 
-    def __do_flatten(self):
+    def __do_flatten_sync(self):
+        assert not self._root_np
+        self._root_np = G.render.attach_new_node('root')
+        for model in self._static_models:
+            model.reparent_to(self._root_np)
+        self._root_np.flatten_strong()
+
+    def __do_flatten_async(self):
+        if self._root_np:
+            self._root_np.destroy_node()
         self._root_np = G.render.attach_new_node('root')
         for model in self._static_models:
             model.reparent_to(self._root_np)

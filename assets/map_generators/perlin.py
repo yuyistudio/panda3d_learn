@@ -26,8 +26,29 @@ class PerlinMapGenerator(object):
         self._tpl = {'tile': self._tile}
         self._obj_tpl = {'tile': self._tile, 'object': None}
 
+    def exists(self, r, c):
+        v = random_util.perlin_noise_2d(r, c, 0.13)
+        return v > 0.2
+
     def get(self, r, c):
         v = random_util.perlin_noise_2d(r, c, 0.13)
+        if v < 0.29:
+            return {
+                'tile': {
+                    'level': -1,
+                    'name': 'pond',
+                    'side_name': 'barren',
+                }
+            }
+        if v > 0.68:
+            return {
+                'tile': {
+                    'level': 1,
+                    'name' : 'rock2',
+                    'side_name' : 'barren',
+                }
+            }
+
         for item in self._mapping:
             threshold, tile_type = item[0], item[1]
             if v < threshold:
