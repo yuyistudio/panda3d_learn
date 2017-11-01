@@ -6,7 +6,6 @@ from objects import lights
 from variable.global_vars import G
 from panda3d.core import NodePath
 from panda3d.core import Thread
-print Thread.isThreadingSupported()
 from util import log
 from panda3d.core import loadPrcFileData
 loadPrcFileData("", "want-directtools #t")

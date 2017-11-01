@@ -14,8 +14,28 @@ freeze_list中的object不会被刷新。
 ### callbacks
 
 1. generator 地图生成器
+```python
+    get(r,c)
+        return {
+            'tile':{'name':'xx'},
+            'object':{'name':'xx'}
+        }
+```
 2. spawner 物体生成器
+```python
+    get(x, y, config)
+```
 3. storage_mgr 存储管理器
-
-各种回调的要求，详见代码注释
-
+```python
+    set(k, v)
+    get(k, v)
+```
+4. texture config
+```python
+    {
+        "texture_file": "xxx",
+        "tiles": {
+            "tile_name": (u1,v1,u2,v2),
+        }
+    }
+```

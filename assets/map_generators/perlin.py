@@ -22,33 +22,21 @@ class PerlinMapGenerator(object):
         if debug:
             self._mapping = [(.4, '@'), (.7, '.'), (.8, '+'), (1.01, 'O')]
 
-        self._tile = {'name': 'UNSET'}
-        self._tpl = {'tile': self._tile}
-        self._obj_tpl = {'tile': self._tile, 'object': None}
+        self._tile = {'name': 'side'}
+        self._tpl_only_tile = {'tile': self._tile}
+        self._tpl_tile_object = {'tile': self._tile, 'object': None}
 
     def exists(self, r, c):
         v = random_util.perlin_noise_2d(r, c, 0.13)
         return v > 0.2
 
-    def get(self, r, c):
-        v = random_util.perlin_noise_2d(r, c, 0.13)
-        if v < 0.29:
-            return {
-                'tile': {
-                    'level': -1,
-                    'name': 'pond',
-                    'side_name': 'barren',
-                }
-            }
-        if v > 0.68:
-            return {
-                'tile': {
-                    'level': 1,
-                    'name' : 'rock2',
-                    'side_name' : 'barren',
-                }
-            }
+    def get_side_name(self):
+        return 'side'
 
+    def get(self, r, c):
+        if abs(r) + abs(c) > 23:
+            return None
+        v = random_util.perlin_noise_2d(r, c, 0.13)
         for item in self._mapping:
             threshold, tile_type = item[0], item[1]
             if v < threshold:
@@ -56,14 +44,14 @@ class PerlinMapGenerator(object):
                 if 'grass' in tile_type or True:
                     rand_v = random.random()
                     if rand_v < .02:
-                        self._obj_tpl['object'] = {'name': 'tree'}
+                        self._tpl_tile_object['object'] = {'name': 'tree'}
                     elif rand_v < .03:
-                        self._obj_tpl['object'] = {'name': 'twig'}
+                        self._tpl_tile_object['object'] = {'name': 'twig'}
                     else:
-                        return self._tpl
-                    return self._obj_tpl
+                        return self._tpl_only_tile
+                    return self._tpl_tile_object
                 else:
-                    return self._tpl
+                    return self._tpl_only_tile
         assert False
 
 
