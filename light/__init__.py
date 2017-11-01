@@ -29,7 +29,7 @@ def add_directional(parent_np):
     light.setScene(parent_np)
     light.setShadowCaster(True)
     light.setColor(LVector4(1, 1, 1, 1))
-    sun_range = 90
+    sun_range = 60
     light.getLens(0).setFilmSize(sun_range, sun_range)  # 设置光照范围.(横向、纵向)
     if config.SHOW_LIGHT_FRUSTUM:
         light.showFrustum()

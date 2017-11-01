@@ -27,12 +27,6 @@ class GameManager(object):
         self.craft_mgr = craft_manager.CraftManager()
         self.craft_mgr.register_recipes(json.loads(open('assets/json/recipes.json').read()))
 
-        log.process('creating chunk manager')
-        self.chunk_mgr = chunk_manager.ChunkManager(chunk_title_count=10, chunk_tile_size=2, chunk_count=36)
-        self.chunk_mgr.set_generator(G.config_mgr.get_map_config('perlin')())
-        self.chunk_mgr.set_tile_texture(G.config_mgr.get_tile_config('default'))
-        self.chunk_mgr.set_spawner(G.spawner)
-
         # 载入存档
         log.process('loading slot storage')
         self.slot = G.storage_mgr.get_or_create_slot_entry( G.context.slot_name )
@@ -52,7 +46,13 @@ class GameManager(object):
             self.slot.save()
 
         # 设置chunk manager的存档
-        self.chunk_mgr.set_storage_mgr(self.scene)
+        log.process('creating chunk manager')
+        self.chunk_mgr = chunk_manager.ChunkManager(
+            texture_config=G.config_mgr.get_tile_config('default'),
+            spawner=G.spawner,
+            map_generator=G.config_mgr.get_map_config('perlin')(),
+            storage_mgr=self.scene,
+            chunk_title_count = 10, chunk_tile_size = 2, chunk_count = 36)
 
         self._ground = ground.create()  # TODO remove it
         lights.create()  # TODO remove it

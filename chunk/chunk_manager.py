@@ -21,60 +21,15 @@ from panda3d.core import Texture
 #assert Thread.isThreadingSupported()
 import time
 from util import async_loader
-
-
-DEFAULT_UV = (0, 0, 1., 1.)
-
-
-class LRUCache(object):
-    """
-    保留最近添加的Max_count个object
-    """
-    def __init__(self, max_count=6):
-        self._keys = []
-        self._hash = {}
-        self._max_keys = max_count
-
-    def debug_peek(self, key):
-        return self._hash.get(key)
-
-    def add(self, key, value):
-        """
-        添加一个kvpair，返回一个过期的kvpair。
-        :param key:
-        :param value:
-        :return:
-        """
-        assert key not in self._hash
-        trash_key = None
-        trash_value = None
-        if len(self._keys) == self._max_keys:
-            trash_key = self._keys[0]
-            trash_value = self._hash[trash_key]
-            self._keys.pop(0)
-            del self._hash[trash_key]
-        self._keys.append(key)
-        self._hash[key] = value
-        return trash_key, trash_value
-
-    def get(self, key):
-        """
-        Get and remove.
-        :param key:
-        :return:
-        """
-        try:
-            idx = self._keys.index(key)
-        except:
-            return None
-        self._keys.pop(idx)
-        v = self._hash[key]
-        del self._hash[key]
-        return v
+from lru_cache import LRUCache
+from ground_geom import GroundGeomUtil
 
 
 class ChunkManager(object):
-    def __init__(self, chunk_title_count=16, chunk_tile_size=2., chunk_count=9):
+    def __init__(self,
+                 texture_config, spawner, map_generator, storage_mgr,
+                 chunk_title_count=16, chunk_tile_size=2., chunk_count=9,
+                 ):
         """
         :param chunk_title_count: chunk中的tile的数量
         :param chunk_tile_size: tile在世界中的尺寸
@@ -83,67 +38,24 @@ class ChunkManager(object):
         self._tile_not_found_exception = Exception('tile not found')
 
         self._chunk_count = chunk_count
-        self._storage_mgr = None
-        self._texture_config = None
+        self._storage_mgr = storage_mgr
         self._chunk_tile_count = chunk_title_count
         self._chunk_tile_size = chunk_tile_size
         self._chunks = {}
         self._chunk_size = self._chunk_tile_count * self._chunk_tile_size  # chunk在世界中的尺寸
         self._center_chunk_id = (0, 0)
-        self._generator = DefaultRandomMapGenerator()
-        self._spawner = DefaultEntitySpawner()
+        self._generator = map_generator
+        self._spawner = spawner
         self._cache = LRUCache(11)  # TODO 根据机器内存大小动态设置一个合理的值。
         self._async_loader = async_loader.AsyncLoader()
         self._async_loader.start()
         self._yielders = []
         self._processing_chunk_keys = []  # 当前正在加载的ChunkIDs（加载分为很多帧进行的）
+        self._ground_geom_util = GroundGeomUtil(self._chunk_tile_size, self._chunk_tile_count, map_generator, texture_config)
 
         from collections import Counter
         self._unload_counter = Counter()
         self._counter_threshold = 0 if G.debug else 200
-
-    def set_storage_mgr(self, storage_mgr):
-        """
-        :param storage_mgr:
-            set(k, v)
-            get(k, v)
-        :return:
-        """
-        self._storage_mgr = storage_mgr
-
-    def set_spawner(self, spawner):
-        """
-        :param spawner:
-            get(x, y, config)
-        :return:
-        """
-        self._spawner = spawner
-
-    def set_generator(self, generator):
-        """
-        :param generator:
-            get(r,c)
-                return {
-                    'tile':{'name':'xx'},
-                    'object':{'name':'xx'}
-                }
-        :return:
-        """
-        assert generator
-        self._generator = generator
-
-    def set_tile_texture(self, texture_config):
-        """
-        :param texture_config:
-            {
-                "texture_file": "xxx",
-                "tiles": {
-                    "tile_name": (u1,v1,u2,v2),
-                }
-            }
-        :return:
-        """
-        self._texture_config = texture_config
 
     def __str__(self):
         items = []
@@ -160,6 +72,12 @@ class ChunkManager(object):
         return r, c
 
     def transfer_frozen_object(self, src_chunk, frozen_object):
+        """
+        尝试将物体从src_chunk移动到正确的chunk中.
+        :param src_chunk:
+        :param frozen_object:
+        :return:
+        """
         pos = frozen_object.get_pos()
         key = self.xy2rc(pos[0], pos[1])
         target_chunk = self._chunks.get(key)
@@ -270,57 +188,6 @@ class ChunkManager(object):
         chk.add_object(obj)
         return obj
 
-    def _create_ground_from_data(self, r, c, data):
-        mapping = {}
-        for item in data['tiles']:
-            mapping[(item[0], item[1])] = item[2]
-        plane_geom_node = procedural_model.create_plane(self._chunk_tile_size, self._chunk_tile_count, mapping)
-        plane_np = G.render.attach_new_node(plane_geom_node)
-        plane_np.set_pos(Vec3(c * self._chunk_size, r * self._chunk_size, 0))
-        texture_file = data['texture']
-        if texture_file:
-            tex = G.loader.loadTexture(texture_file)
-            tex.set_magfilter(Texture.FT_nearest)
-            plane_np.set_texture(tex)
-        return plane_np
-
-    def _new_ground_geom(self, r, c):
-        tiles_data = []  # 村ground数据，放到chunk里面存折，后面载入的时候会用到.
-
-        def uv_fn(tile_r, tile_c):
-            info = self._generator.get(r * self._chunk_tile_count + tile_r, c * self._chunk_tile_count + tile_c)
-            assert info
-            tile = info.get('tile', {})
-            name = tile.get('name')
-            side_name = tile.get('side_name')
-            if not name:
-                assert name, 'tile has no name: %s' % info
-                return DEFAULT_UV
-            uv = self._texture_config['tiles'].get(name)
-            side_uv = self._texture_config['tiles'].get(side_name) or uv
-            assert uv, 'texture config not found: %s, from %s' % (name, self._texture_config)
-            level = tile.get('level', 0)
-            ground_data = {'uv': uv, 'level': level, 'side_uv': side_uv}
-            tiles_data.append((tile_r, tile_c, ground_data))
-            return ground_data
-        cache = {}
-        for i in range(-1, self._chunk_tile_count+1):
-            for j in range(-1, self._chunk_tile_count+1):
-                cache[(i, j)] = uv_fn(i, j)
-        plane_geom_node = procedural_model.create_plane(self._chunk_tile_size, self._chunk_tile_count, cache)
-        plane_np = G.render.attach_new_node(plane_geom_node)
-        plane_np.set_pos(Vec3(c * self._chunk_size, r * self._chunk_size, 0))
-        texture_file = None
-        if self._texture_config:
-            texture_file = self._texture_config['texture_file']
-            tex = G.loader.loadTexture(texture_file)
-            tex.set_magfilter(Texture.FT_nearest)
-            plane_np.set_texture(tex)
-        return plane_np, {
-            'tiles': tiles_data,
-            'texture': texture_file,
-        }
-
     def _load_chunk(self, r, c):
         chunk_self = self
         chunk_key = (r, c)
@@ -367,20 +234,23 @@ class ChunkManager(object):
                 new_chunk.on_load(self._spawner, storage_data)
                 ground_data = new_chunk.get_ground_data()
                 assert ground_data
-                ground_np = self._create_ground_from_data(r, c, ground_data)
+                ground_np = self._ground_geom_util.create_ground_from_data(r, c, ground_data)
                 new_chunk.set_ground_geom(ground_np, ground_data)
                 return new_chunk
 
-        # 生成tile物体
-        plane_np, tiles_data = self._new_ground_geom(r, c)
+        # 生成tile物体和地形
+        plane_np, tiles_data = self._ground_geom_util.new_ground_geom(r, c)
         new_chunk.set_ground_geom(plane_np, tiles_data)
 
         # 遍历所有tile生成物体
+        # TODO 优化点，map_generator的get可以只调用一次吗？
         br = r * self._chunk_tile_count
         bc = c * self._chunk_tile_count
         for ir in range(br, br + self._chunk_tile_count):
             for ic in range(bc, bc + self._chunk_tile_count):
                 ginfo = self._generator.get(ir, ic)
+                if not ginfo:
+                    continue
                 obj_info = ginfo.get('object')
                 if obj_info:
                     x = (ic + .5) * self._chunk_tile_size
