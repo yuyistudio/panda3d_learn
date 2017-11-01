@@ -10,16 +10,17 @@ __author__ = 'Leon'
         1. 原地做出动作
         2. 走过去，并作出动作
 
-三要素：
+四要素：
 1. 玩家工具：hand axe pickaxe
 2. 玩家行为：左击还是右击
-2. 目标entity的组件
+3. 目标entity的组件
+4. 鼠标entity
 
 entity component:
-1. allow_action(self, tool_component, key_type)
-2. do_action(self, tool_component, key_type)
+1. allow_action(self, tool_component, key_type, mouse_entity)
+2. do_action(self, tool_component, key_type, mouse_entity)
 
-每个函数都拥有完备的三要素信息，所以可以完整判断接下来的行为。
+每个函数都拥有完备的信息，所以可以完整判断接下来的行为。
 
 匹配规则:
 tool
