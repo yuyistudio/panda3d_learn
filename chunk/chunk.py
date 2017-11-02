@@ -40,14 +40,18 @@ class Chunk(object):
         self._enabled = True
         self._ground_geom = None
         self._ground_data = None
+        self._block_body = None  # 地图上不可到达区域的collider对应的body
 
         self._static_models = []
         self._root_np = None
         self._is_doing_flatten = False
 
-    def set_ground_geom(self, geom, data):
+    def set_ground_geom(self, geom, data, block_body):
         self._ground_geom = geom
         self._ground_data = data
+        self._block_body = block_body
+        if block_body:
+            G.physics_world.add_body(block_body)
 
     def get_ground_data(self):
         return self._ground_data
@@ -212,11 +216,15 @@ class Chunk(object):
         assert self._enabled != enabled
         self._enabled = enabled
         if enabled:
+            if self._block_body:
+                G.physics_world.add_body(self._block_body)
             if self._ground_geom:
                 self._ground_geom.show()
             if self._root_np:
                 self._root_np.show()
         else:
+            if self._block_body:
+                G.physics_world.remove_body(self._block_body)
             if self._ground_geom:
                 self._ground_geom.hide()
             if self._root_np:
