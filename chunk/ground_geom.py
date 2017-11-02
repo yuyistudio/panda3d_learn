@@ -42,10 +42,10 @@ class GroundGeomUtil(object):
         return '%d_%d' % (r, c)
 
     def new_ground_geom(self, r, c):
-        storage_data = {}  # 村ground数据，放到chunk里面存折，后面载入的时候会用到.
+        storage_data = {}  # 存ground数据，放到chunk里面存折，后面载入的时候会用到.
         cache = {}
-        for tile_r in range(0, self._chunk_tile_count):
-            for tile_c in range(0, self._chunk_tile_count):
+        for tile_r in range(-1, self._chunk_tile_count + 1):
+            for tile_c in range(-1, self._chunk_tile_count + 1):
                 info = self._generator.get(r * self._chunk_tile_count + tile_r, c * self._chunk_tile_count + tile_c)
                 storage_data[self._storage_key(tile_r, tile_c)] = info
                 cache[(tile_r, tile_c)] = self._tile_info_to_uv_info(info)

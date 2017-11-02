@@ -13,12 +13,14 @@ Chunk的rc函数使用tile_rc.
 import traceback
 import chunk
 from map_generator import *
+from panda3d.bullet import *
 import math
 from util import procedural_model, log
 from variable.global_vars import G
-from panda3d.core import Texture
+from panda3d.core import Point3, TransformState
 #from panda3d.core import Thread
 #assert Thread.isThreadingSupported()
+import config as gconf
 import time
 from util import async_loader
 from lru_cache import LRUCache
@@ -211,6 +213,45 @@ class ChunkManager(object):
                     self._chunks[chunk_key] = chunk
         self._async_loader.add_job(wrapper)
 
+    def _create_block_bodies(self, r, c):
+        """
+        生成地图不可到达部分的collider
+        :return:
+        """
+        blocked_tiles = set()
+        for tile_r in range(-1, self._chunk_tile_count + 1):
+            for tile_c in range(-1, self._chunk_tile_count + 1):
+                info = self._generator.get(r * self._chunk_tile_count + tile_r, c * self._chunk_tile_count + tile_c)
+                if not info:
+                    blocked_tiles.add((tile_r, tile_c))
+        if not blocked_tiles:
+            return None
+        body = BulletRigidBodyNode('physical_box_shapes')
+        body.setMass(0)
+        body.set_static(True)
+        body.setIntoCollideMask(gconf.BIT_MASK_BLOCKED)
+        bx, by = self.rc2xy(r, c)
+        half_tile_size = self._chunk_tile_size * .5
+        half_size = Vec3(half_tile_size)
+        rc_list = ((-1, 0), (1, 0), (0, 1), (0, -1))
+        for tile_r in range(0, self._chunk_tile_count):
+            for tile_c in range(0, self._chunk_tile_count):
+                if (tile_r, tile_c) not in blocked_tiles:
+                    continue
+                any_walkable = False
+                for r, c in rc_list:
+                    if (tile_r + r, tile_c + c) not in blocked_tiles:
+                        any_walkable = True
+                        break
+                if not any_walkable:
+                    continue
+                shape = BulletBoxShape(half_size)
+                pos = Point3(bx + tile_c * self._chunk_tile_size + half_tile_size,
+                             by + tile_r * self._chunk_tile_size + half_tile_size,
+                             half_tile_size)
+                body.addShape(shape, TransformState.makePos(pos))
+        return body
+
     def _load_chunk_real(self, r, c):
         """
         :param r:
@@ -235,12 +276,15 @@ class ChunkManager(object):
                 ground_data = new_chunk.get_ground_data()
                 assert ground_data
                 ground_np = self._ground_geom_util.create_ground_from_data(r, c, ground_data)
-                new_chunk.set_ground_geom(ground_np, ground_data)
+                block_body = self._create_block_bodies(r, c)
+                new_chunk.set_ground_geom(ground_np, ground_data, block_body)
                 return new_chunk
 
         # 生成tile物体和地形
+        block_body = self._create_block_bodies(r, c)
+        #block_body = None
         plane_np, tiles_data = self._ground_geom_util.new_ground_geom(r, c)
-        new_chunk.set_ground_geom(plane_np, tiles_data)
+        new_chunk.set_ground_geom(plane_np, tiles_data, block_body)
 
         # 遍历所有tile生成物体
         # TODO 优化点，map_generator的get可以只调用一次吗？
