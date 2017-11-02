@@ -290,7 +290,6 @@ class ChunkManager(object):
 
         # 生成tile物体和地形
         block_body = self._create_block_bodies(r, c)
-        #block_body = None
         plane_np, tiles_data = self._ground_geom_util.new_ground_geom(r, c)
         new_chunk.set_ground_geom(plane_np, tiles_data, block_body)
 

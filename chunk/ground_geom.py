@@ -10,6 +10,7 @@ import time
 from util import procedural_model, log
 from panda3d.core import Vec3, Texture
 from variable.global_vars import G
+import copy
 
 
 DEFAULT_UV = (0, 0, 1., 1.)
@@ -47,7 +48,7 @@ class GroundGeomUtil(object):
         for tile_r in range(-1, self._chunk_tile_count + 1):
             for tile_c in range(-1, self._chunk_tile_count + 1):
                 info = self._generator.get(r * self._chunk_tile_count + tile_r, c * self._chunk_tile_count + tile_c)
-                storage_data[self._storage_key(tile_r, tile_c)] = info
+                storage_data[self._storage_key(tile_r, tile_c)] = copy.deepcopy(info)
                 cache[(tile_r, tile_c)] = self._tile_info_to_uv_info(info)
         plane_geom_node = procedural_model.create_plane(
             self._side_uv, self._chunk_tile_size, self._chunk_tile_count, cache)
