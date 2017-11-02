@@ -231,7 +231,7 @@ class ActionHeroWork(BaseAction):
             log.debug('work done: %s', buffered_work.get('anim_name', 'craft'))
 
             entity = buffered_work['target_entity']
-            if entity.do_action(fake_tool, 'left'):
+            if entity.do_action(fake_tool, 'left', None):
                 return SUCCESS
             else:
                 return FAIL

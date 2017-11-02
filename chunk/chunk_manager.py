@@ -48,7 +48,7 @@ class ChunkManager(object):
         self._center_chunk_id = (0, 0)
         self._generator = map_generator
         self._spawner = spawner
-        self._cache = LRUCache(11)  # TODO 根据机器内存大小动态设置一个合理的值。
+        self._cache = LRUCache(32)  # TODO 根据机器内存大小动态设置一个合理的值。
         self._async_loader = async_loader.AsyncLoader()
         self._async_loader.start()
         self._yielders = []
@@ -174,6 +174,14 @@ class ChunkManager(object):
         """
         assert False
 
+    def remove_entity(self, entity):
+        pos = entity.get_pos()
+        r, c = self.xy2rc(pos.get_x(), pos.get_y())
+        chunk = self._chunks.get((r, c))
+        assert chunk, (r, c, chunk)
+        chunk.remove_entity(entity)
+        chunk.get_flatten_fn()()
+
     def spawn_to_exist_chunk(self, x, y, config):
         """
         Spawn an entity at position (x,y) with config.
@@ -202,7 +210,7 @@ class ChunkManager(object):
                 assert not self._chunks.get(chunk_key)
                 chunk = self._load_chunk_real(r, c)
                 assert not self._chunks.get(chunk_key), '防止chunk._load_chunk_real()中不小心赋值'
-                if chunk:
+                if chunk and not chunk.is_geom_flattened():
                     fn = chunk.get_flatten_fn()
                     if fn:
                         fn()

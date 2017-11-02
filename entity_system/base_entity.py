@@ -6,6 +6,7 @@ from panda3d.core import Vec3
 from base_component import NO_STORAGE_FLAG
 from common import user_action
 from variable.global_vars import G
+from util import log
 
 name2component_class = {}
 
@@ -56,17 +57,22 @@ class BaseEntity(object):
         assert key_type not in self._key_handlers
         self._key_handlers[key_type] = component
 
-    def allow_action(self, tool, key_type):
-        handler_com = self._key_handlers.get(key_type)
-        if not handler_com:
-            return False
-        return handler_com.allow_action(tool, key_type)
+    def is_static(self):
+        return True
 
-    def do_action(self, tool, key_type):
-        if not self.allow_action(tool, key_type):
-            return False
-        handler_com = self._key_handlers.get(key_type)
-        return handler_com.do_action(tool, key_type)
+    def allow_action(self, tool, key_type, mouse_entity):
+        for com in self._components.itervalues():
+            action_type = com.allow_action(tool, key_type, mouse_entity)
+            if action_type:
+                log.debug("allowed %s, com %s", action_type, com)
+                return action_type
+        return False
+
+    def do_action(self, tool, key_type, mouse_entity):
+        for com in self._components.itervalues():
+            if com.do_action(tool, key_type, mouse_entity):
+                return True
+        return False
 
     def get_static_models(self):
         models = []
@@ -83,7 +89,7 @@ class BaseEntity(object):
     def is_destroyed(self):
         return self._destroyed
 
-    def destroy(self):
+    def destroy(self, on_removing_chunk=False):
         """
         因为GC有延时，所以需要显式destroy物体。
         destroy不会立即生效，以免当前帧出错。应当保证被destroy的物体不会再产生交互。
@@ -92,12 +98,14 @@ class BaseEntity(object):
         assert not self._destroyed
         self._destroyed = True
 
-        # TODO 实现一种更优雅的方式
+        # TODO 实现一种更优雅的方式去destroy物体，比如先保存到一个队列中，过一会儿再删除
         def delayed_destroy(task):
+            if not on_removing_chunk:
+                G.game_mgr.chunk_mgr.remove_entity(self)
             for com in self._components.itervalues():
                 com.destroy()
             return task.done
-        G.taskMgr.doMethodLater(0.1, delayed_destroy, name='destroy')
+        G.taskMgr.doMethodLater(0.01, delayed_destroy, name='destroy')
 
     @staticmethod
     def register_components(components, ignore_conflict=False):
