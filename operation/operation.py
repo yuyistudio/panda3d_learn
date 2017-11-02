@@ -101,7 +101,7 @@ class Operation(object):
             "distance": 1
         })
         key = 'left' if is_left_mouse else 'right'
-        action_type = entity.allow_action(fake_tool, key)
+        action_type = entity.allow_action(fake_tool, key, None)
         if not action_type:
             log.debug('action not allowed for entity: %s', entity)
             return

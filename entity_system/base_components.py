@@ -29,7 +29,6 @@ class ObjModel(BaseComponent):
         self.is_static = config.get('static', True)  # TODO 对于静态物体，可以合并模型进行优化. np.flatten_strong()
         self.model_np = NodePath("unknown_model")
         G.loader.loadModel(model_path).get_children().reparent_to(self.model_np)
-        self.model_np.setName("unknown")
         self.model_np.set_scale(self.scale)
         self.model_np.set_pos(Vec3(0, 0, 0))
         for tex in self.model_np.find_all_textures():
@@ -58,6 +57,7 @@ class ObjModel(BaseComponent):
         ent = self.get_entity()
         ent.set_transform(self)
         ent.set_radius(max(self.half_size[0], self.half_size[1]))
+        self.model_np.setName('%s.model' % ent.get_name())
 
     def set_enabled(self, enabled):
         assert self.enabled != enabled
@@ -287,7 +287,7 @@ class ObjDestroyable(BaseComponent):
     def on_start(self):
         self.get_entity().register_key_handler(self._key, self)
 
-    def allow_action(self, tool, key_type):
+    def allow_action(self, tool, key_type, mouse_entity):
         action_types = tool.get_action_types()
         best_action_type, max_duration = self._get_best_action(action_types)
         return best_action_type
@@ -308,8 +308,8 @@ class ObjDestroyable(BaseComponent):
                     best_action_type = action_type
         return best_action_type, max_duration
 
-    def do_action(self, tool, key_type):
-        if not self.allow_action(tool, key_type):
+    def do_action(self, tool, key_type, mouse_entity):
+        if not self.allow_action(tool, key_type, mouse_entity):
             return False
 
         action_types = tool.get_action_types()
@@ -319,7 +319,8 @@ class ObjDestroyable(BaseComponent):
 
         log.debug("do action: %s", best_action_type)
         self._duration -= max_duration
-        if self._duration < 0:
+        if self._duration <= 0:
+            self._duration = 0
             loot = self.get_entity().get_component(ObjLoot)
             if loot:
                 loot.on_loot()

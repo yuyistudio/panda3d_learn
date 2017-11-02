@@ -7,6 +7,8 @@ from panda3d.core import Vec3
 from variable.global_vars import G
 import sys
 import config as gconf
+from util import log
+import random
 
 
 class Tile(object):
@@ -16,7 +18,7 @@ class Tile(object):
 
     def destroy(self):
         for obj in self.objects:
-            obj.destroy()
+            obj.destroy(True)
 
 
 class Chunk(object):
@@ -28,6 +30,7 @@ class Chunk(object):
         self._mgr, self._bx, self._by, self._tc, self._ts = \
             mgr, base_x, base_y, tile_count, tile_size
 
+        self._key = '%d_%d' % (base_x, base_y)
         r, c = self.xy2rc(base_x, base_y)
         self._tiles = []
         for i in range(tile_count):
@@ -83,29 +86,47 @@ class Chunk(object):
         tile.objects.append(new_obj)
         self._static_models.extend(new_obj.get_static_models())
 
-    def get_flatten_fn(self, async=True):
+    def remove_entity(self, entity, is_static=True):
+        """
+        可以是静态或者动态的object
+        :param entity:
+        :return:
+        """
+        if is_static:
+            # 移除entit引用
+            pos = entity.get_pos()
+            r, c = self.xy2rc(pos.getX(), pos.getY())
+            assert self.rc_in_chunk(r, c), '%s , %s , %s,%s' % ((r, c), pos, self._bx, self._by)
+            tile = self._tiles[r * self._tc + c]
+            try:
+                tile.objects.remove(entity)
+            except Exception, e:
+                log.debug("AAA %s %s %s", e, entity.get_pos(), r, c)
+            # 重新获取静态模型
+            for model in entity.get_static_models():
+                self._static_models.remove(model)
+        else:
+            # 移除entit引用
+            self._frozen_objects.remove(entity)
+
+    def is_geom_flattened(self):
+        return self._root_np
+
+    def get_flatten_fn(self):
         if self._is_doing_flatten:
             """只flatten一次"""
             return None
         self._is_doing_flatten = True
-        if async:
-            return self.__do_flatten_async
-        return self.__do_flatten_sync
-
-    def __do_flatten_sync(self):
-        assert not self._root_np
-        self._root_np = G.render.attach_new_node('root')
-        for model in self._static_models:
-            model.reparent_to(self._root_np)
-        self._root_np.flatten_strong()
+        return self.__do_flatten_async
 
     def __do_flatten_async(self):
         if self._root_np:
-            self._root_np.destroy_node()
-        self._root_np = G.render.attach_new_node('root')
+            self._root_np.remove_node()
+        self._root_np = G.render.attach_new_node('root_%s' % self._key)
         for model in self._static_models:
             model.reparent_to(self._root_np)
         G.loader.asyncFlattenStrong(self._root_np, True)
+        self._is_doing_flatten = False
 
     def xy2rc(self, x, y):
         """
@@ -170,7 +191,7 @@ class Chunk(object):
             tile.destroy()
         self._tiles = None
         for obj in self._frozen_objects:
-            obj.destroy()
+            obj.destroy(True)
         self._frozen_objects = None
 
     def _iterate_objects(self):

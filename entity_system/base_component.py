@@ -75,20 +75,22 @@ class BaseComponent(object):
     def on_key(self, key):
         pass
 
-    def allow_action(self, tool, key_type):
+    def allow_action(self, tool, key_type, mouse_entity):
         """
         返回是否可以执行该动作
         :param tool:
         :param key_type:
-        :return:
+        :param mouse_entity:
+        :return: action_type
         """
-        return True
+        return None
 
-    def do_action(self, tool, key_type):
+    def do_action(self, tool, key_type, mouse_entity):
         """
         返回是否执行成功
         :param tool:
         :param key_type:
+        :param mouse_entity:
         :return:
         """
         return False
