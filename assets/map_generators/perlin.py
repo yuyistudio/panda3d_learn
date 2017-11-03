@@ -33,6 +33,9 @@ class PerlinMapGenerator(object):
     def get_side_name(self):
         return 'side'
 
+    def get_start_tile(self):
+        return 0, 0
+
     def get(self, r, c):
         if abs(r) + abs(c) > 23:
             return None

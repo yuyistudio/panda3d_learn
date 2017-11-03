@@ -9,8 +9,16 @@ from panda3d.core import Vec3
 # thus we can identify this error immediately.
 NO_STORAGE_FLAG = "__NO_STORAE__"
 
+ENTITY_TYPE_UNKNOWN = 0
+ENTITY_TYPE_ITEM = 0x1
+ENTITY_TYPE_OBJECT = 0x2
+ENTITY_TYPE_ITEM_OBJECT = 0x3
+
 
 class BaseComponent(object):
+    entity_type = ENTITY_TYPE_UNKNOWN
+    name = 'BaseComponent'
+
     def __init__(self):
         self._entity_weak_ref = None
 

@@ -1,0 +1,5 @@
+{
+  "default": {
+    "map_generator": "perlin"
+  }
+}

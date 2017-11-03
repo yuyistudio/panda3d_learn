@@ -10,7 +10,7 @@ from panda3d.core import Vec3
 
 class Spawner(object):
     def __init__(self):
-        objects_definitions = 'assets/objects/objects.json'
+        objects_definitions = 'assets/json/objects.json'
         js = json.loads(open(objects_definitions, 'r').read())
         BaseEntity.set_config(js)
 

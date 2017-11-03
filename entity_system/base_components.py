@@ -1,6 +1,6 @@
 # encoding: utf8
 
-from base_component import BaseComponent
+from base_component import *
 from variable.global_vars import G
 import config as gconf
 from panda3d.core import Vec3, Texture, NodePath
@@ -11,6 +11,7 @@ from util import log
 
 class ObjInspectable(BaseComponent):
     name = 'inspectable'
+    entity_type = ENTITY_TYPE_OBJECT
 
     def __init__(self, config):
         self._iname = config.get('iname', 'NAME_UNSET')
@@ -21,6 +22,7 @@ class ObjInspectable(BaseComponent):
 
 class ObjModel(BaseComponent):
     name = 'model'
+    entity_type = ENTITY_TYPE_OBJECT
 
     def __init__(self, config):
         model_path = config['model_file']
@@ -105,6 +107,7 @@ from common.animator import Animator
 
 class ObjAnimator(BaseComponent):
     name = 'animator'
+    entity_type = ENTITY_TYPE_OBJECT
 
     def __init__(self, config):
         self._animator = Animator(config, None)
@@ -168,6 +171,7 @@ from util import lerp_util
 
 class ObjTransformController(BaseComponent):
     name = 'transform_controller'
+    entity_type = ENTITY_TYPE_OBJECT
 
     def __init__(self, config):
         self._move_speed_lerper = lerp_util.FloatLerp(
@@ -218,6 +222,7 @@ from bt_system import behaviour_tree as bt
 
 class ObjRandomHeroController(BaseComponent):
     name = 'random_hero_controller'
+    entity_type = ENTITY_TYPE_OBJECT
 
     def __init__(self, config):
         self._animator = None
@@ -255,6 +260,7 @@ class ObjRandomHeroController(BaseComponent):
 
 class ObjLoot(BaseComponent):
     name = 'loot'
+    entity_type = ENTITY_TYPE_OBJECT
 
     def __init__(self, config):
         self._loots = config.get('objects')
@@ -265,6 +271,7 @@ class ObjLoot(BaseComponent):
 
 class ObjDestroyable(BaseComponent):
     name = 'destroyable'
+    entity_type = ENTITY_TYPE_OBJECT
 
     def __init__(self, config):
         """
@@ -334,31 +341,21 @@ class ObjDestroyable(BaseComponent):
         self._duration = data
 
 
-class ObjInspectable(BaseComponent):
-    name = 'inspectable'
+class ObjEntrance(BaseComponent):
+    name = 'entrance'
+    entity_type = ENTITY_TYPE_OBJECT
 
     def __init__(self, config):
-        """
-        self._actions = {
-            "actions": {
-                "pick": {"efficiency": 0.1},
-                "cut": {"efficiency": 1.0},
-            },
-            "duration": 10,
-        }
-        :param config:
-        :return:
-        """
-        BaseComponent.__init__(self)
-        self._actions = config.get('actions', dict())
-        self._duration = config.get('duration')
+        self._scene_name = config['scene_name']
+        assert self._scene_name
 
-    def get_inspect_info(self):
-        return 'INSPECTABLE: %s' + self.get_entity().get_inspectable_components()
+    def get_scene_name(self):
+        return self._scene_name
 
 
 class ObjHeroController(BaseComponent):
     name = 'hero_controller'
+    entity_type = ENTITY_TYPE_OBJECT
     DEFAULT_EVENT_DATA = 19930622
 
     def __init__(self, config):
@@ -388,6 +385,7 @@ class ObjHeroController(BaseComponent):
 
     def on_start(self):
         ent = self.get_entity()
+        G.operation.set_target(ent)  # 设置为的操作对象
         self.controller = ent.get_component(ObjTransformController)
         self._animator = ent.get_component(ObjAnimator)
         self._animator.set_animator_handler(self._animator_handler)

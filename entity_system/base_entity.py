@@ -2,11 +2,9 @@
 
 
 import base_components
-from panda3d.core import Vec3
-from base_component import NO_STORAGE_FLAG
-from common import user_action
 from variable.global_vars import G
 from util import log
+from base_component import *
 
 name2component_class = {}
 
@@ -23,9 +21,11 @@ class BaseEntity(object):
     def __str__(self):
         return "[Entity:%s]" % self.get_name()
 
-    def __init__(self, name, overwrite_config=dict()):
+    def __init__(self, name, overwrite_config=dict(), entity_type=ENTITY_TYPE_OBJECT):
         assert isinstance(name, basestring)
         self._name = name
+        self._entity_type = entity_type
+
         default_config = BaseEntity._config.get(self._name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
         if default_config == BaseEntity.CONFIG_NOT_FOUND_FLAG:
             raise RuntimeError("entity not found : %s" % self._name)
@@ -61,6 +61,13 @@ class BaseEntity(object):
         return True
 
     def allow_action(self, tool, key_type, mouse_entity):
+        """
+        详见 docs/user_action.md
+        :param tool:
+        :param key_type:
+        :param mouse_entity:
+        :return:
+        """
         for com in self._components.itervalues():
             action_type = com.allow_action(tool, key_type, mouse_entity)
             if action_type:
@@ -93,6 +100,8 @@ class BaseEntity(object):
         """
         因为GC有延时，所以需要显式destroy物体。
         destroy不会立即生效，以免当前帧出错。应当保证被destroy的物体不会再产生交互。
+        :on_removing_chunk: False表示只删除当前entity，此时需要通知chunk_manager进行一些操作。
+            True时直接清理自身就可以了
         :return:
         """
         assert not self._destroyed
@@ -158,7 +167,15 @@ class BaseEntity(object):
         return self._name
 
     def add_component(self, component_name, component_config):
+        """
+        :param component_name:
+        :param component_config:
+        :return: ComInstance添加成功，None因为entity_type不匹配添加失败.
+        """
         component_class = name2component_class.get(component_name)
+        if not (component_class.entity_type & self._entity_type):
+            # 相见 docs/item_object_transfer.md
+            return
         if not component_class:
             raise RuntimeError("invalid component name: %s" % component_name)
         key = component_class

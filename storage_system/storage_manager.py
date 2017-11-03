@@ -127,7 +127,7 @@ class StorageTest(unittest.TestCase):
         self.assertTrue(slot)
         slot.load()
 
-        slot.set_global('mode', 'survival')
+        slot.set('mode', 'survival')
         scene = slot.get_or_create_scene_entry('main_land')
         slot.save()
         scene.set('objects', [1, 2, 3])
@@ -138,7 +138,7 @@ class StorageTest(unittest.TestCase):
 
         slot = sm.get_or_create_slot_entry('1')
         slot.load()
-        self.assertEqual(slot.get_global('mode'), 'survival')
+        self.assertEqual(slot.get('mode'), 'survival')
 
         scene = slot.get_or_create_scene_entry('main_land')
         slot.save()
