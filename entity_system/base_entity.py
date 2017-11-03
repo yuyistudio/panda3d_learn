@@ -5,6 +5,7 @@ import base_components
 from variable.global_vars import G
 from util import log
 from base_component import *
+from config import *
 
 name2component_class = {}
 
@@ -12,9 +13,9 @@ name2component_class = {}
 def get_component_name(com_type):
     return com_type.name
 
-
 class BaseEntity(object):
-    _config = None
+    _object_config = None
+    _item_config = None
     CONFIG_NOT_FOUND_FLAG = -1
     DEFAULT_POS = Vec3(0, 0, 0)
 
@@ -26,7 +27,7 @@ class BaseEntity(object):
         self._name = name
         self._entity_type = entity_type
 
-        default_config = BaseEntity._config.get(self._name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
+        default_config = self._get_config().get(self._name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
         if default_config == BaseEntity.CONFIG_NOT_FOUND_FLAG:
             raise RuntimeError("entity not found : %s" % self._name)
         self._category = default_config.get('category') or self._name
@@ -34,9 +35,6 @@ class BaseEntity(object):
         self._destroyed = False
         self._components = {}
         self._updating_componets = []
-        self._transform_com = None
-        self._radius = overwrite_config.get('radius', default_config.get('radius', 1))
-        self._key_handlers = {}  # action对应的组件。例如 left_click 对应到 edible。目的是保证一个action只有一个com进行响应。
 
         overwrite_com_conf = overwrite_config.get('components', {})
         for com_name, com_config in default_config['components'].iteritems():
@@ -53,68 +51,11 @@ class BaseEntity(object):
                 self._updating_componets.append(com)
             com.on_start()
 
-    def register_key_handler(self, key_type, component):
-        assert key_type not in self._key_handlers
-        self._key_handlers[key_type] = component
-
-    def is_static(self):
-        return True
-
-    def allow_action(self, tool, key_type, mouse_entity):
-        """
-        详见 docs/user_action.md
-        :param tool:
-        :param key_type:
-        :param mouse_entity:
-        :return:
-        """
-        for com in self._components.itervalues():
-            action_type = com.allow_action(tool, key_type, mouse_entity)
-            if action_type:
-                log.debug("allowed %s, com %s", action_type, com)
-                return action_type
-        return False
-
-    def do_action(self, tool, key_type, mouse_entity):
-        for com in self._components.itervalues():
-            if com.do_action(tool, key_type, mouse_entity):
-                return True
-        return False
-
-    def get_static_models(self):
-        models = []
-        for com in self._components.itervalues():
-            models.extend(com.get_static_models())
-        return models
-
-    def set_radius(self, new_radius):
-        self._radius = new_radius
-
-    def get_radius(self):
-        return self._radius
+    def _get_config(self):
+        return self._item_config if self._entity_type == ENTITY_TYPE_ITEM else self._object_config
 
     def is_destroyed(self):
         return self._destroyed
-
-    def destroy(self, on_removing_chunk=False):
-        """
-        因为GC有延时，所以需要显式destroy物体。
-        destroy不会立即生效，以免当前帧出错。应当保证被destroy的物体不会再产生交互。
-        :on_removing_chunk: False表示只删除当前entity，此时需要通知chunk_manager进行一些操作。
-            True时直接清理自身就可以了
-        :return:
-        """
-        assert not self._destroyed
-        self._destroyed = True
-
-        # TODO 实现一种更优雅的方式去destroy物体，比如先保存到一个队列中，过一会儿再删除
-        def delayed_destroy(task):
-            if not on_removing_chunk:
-                G.game_mgr.chunk_mgr.remove_entity(self)
-            for com in self._components.itervalues():
-                com.destroy()
-            return task.done
-        G.taskMgr.doMethodLater(0.01, delayed_destroy, name='destroy')
 
     @staticmethod
     def register_components(components, ignore_conflict=False):
@@ -132,7 +73,7 @@ class BaseEntity(object):
             name2component_class[key] = component_type
 
     @staticmethod
-    def set_config(config):
+    def set_object_config(config):
         """
         :param config: mapping from entity_name => config
             components:
@@ -143,7 +84,23 @@ class BaseEntity(object):
             }
         :return:
         """
-        BaseEntity._config = config
+        BaseEntity._object_config = config
+        for k, v in config.iteritems():
+            v['name'] = k
+
+    @staticmethod
+    def set_item_config(config):
+        """
+        :param config: mapping from entity_name => config
+            components:
+            {
+                "stackable": {"max_count": 10},
+                "perishable": {"time": 80},
+                "edible": {"food": 10},
+            }
+        :return:
+        """
+        BaseEntity._item_config = config
         for k, v in config.iteritems():
             v['name'] = k
 
@@ -156,9 +113,6 @@ class BaseEntity(object):
 
     def get_components_of_type(self, target_type):
         return [com for com_type, com in self._components.iteritems() if isinstance(com, target_type)]
-
-    def get_inspectable_components(self):
-        return [com for com in self._components.itervalues() if com.support_inspect()]
 
     def get_category(self):
         return self._category
@@ -173,9 +127,6 @@ class BaseEntity(object):
         :return: ComInstance添加成功，None因为entity_type不匹配添加失败.
         """
         component_class = name2component_class.get(component_name)
-        if not (component_class.entity_type & self._entity_type):
-            # 相见 docs/item_object_transfer.md
-            return
         if not component_class:
             raise RuntimeError("invalid component name: %s" % component_name)
         key = component_class
@@ -218,21 +169,8 @@ class BaseEntity(object):
             assert com_type, "unidentified component %s" % com_name
             self.get_component(com_type).on_load(com_data)
 
-    def set_transform(self, transform):
-        self._transform_com = transform
-
     def need_update(self):
         return len(self._updating_componets) > 0
-
-    def set_pos(self, pos):
-        if not self._transform_com:
-            return
-        return self._transform_com.set_pos(pos)
-
-    def get_pos(self):
-        if not self._transform_com:
-            return self.DEFAULT_POS
-        return self._transform_com.get_pos()
 
 
 def register_object_components():

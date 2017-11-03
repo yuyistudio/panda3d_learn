@@ -19,7 +19,6 @@ class GUIManager(object):
         self._mouse = MouseGUI()
         self._mouse.setItem(None)
         self._mouse.setText(None)
-        self.item_textures = {}
         G.schedule(self.onUpdate, 'mouse_gui_update')
         self._event_handler = {}
 
@@ -38,6 +37,15 @@ class GUIManager(object):
 
     def create_inventory(self):
         self._inventory = inventory.Inventory()
+
+    def set_inventory_cb(self, click_cb, hover_cb):
+        self._inventory.set_user_cb(hover_cb, click_cb)
+
+    def set_bag_item(self, idx, image_path, user_data, count=0):
+        self._inventory.set_bag_item(idx, image_path, user_data, count)
+
+    def set_item_bar_item(self, idx, image_path, user_data, count=0):
+        self._inventory.set_item_bar_item(idx, image_path, user_data, count)
 
     def set_main_menu_visible(self, visible):
         self._main_menu.set_visible(visible)
@@ -76,13 +84,6 @@ class GUIManager(object):
                 "main_menu.credits",
                 "main_menu.exit",
             ])
-
-    def loadItemTextures(self):
-        images = 'apple axe orange iron silver sapling cooking_pit cobweb'.split()
-        for image_path in images:
-            used_texture = G.loader.loadTexture("./assets/images/items/%s.png" % image_path)
-            used_texture.set_magfilter(Texture.FT_nearest)
-            self.item_textures[image_path] = used_texture
 
     def onUpdate(self):
         self._mouse.onUpdate()

@@ -136,12 +136,15 @@ class GridLayout(object):
         # initialization
         self._cells.append(cell)
         self._cell_images.append(img)
-        self._on_cell_hover(self._idx, False, None)
+        self._inner_cell_hover(self._idx, False, None)
         return cell, img
 
     def _on_cell_hover(self, idx, status, event_info):
         if self._hover_cb:
             self._hover_cb(self._user_data[idx], idx, status)
+        self._inner_cell_hover(idx, status, event_info)
+
+    def _inner_cell_hover(self, idx, status, event_info):
         cell = self._cells[idx]
         if status:
             cell['image_color'] = self._hover_color
@@ -189,12 +192,11 @@ class InventoryLayout(GridLayout):
 
         return cell, img
 
-    def setItem(self, index, image_path, data=None, count=-1):
-        print index, self._cell_images
+    def set_item(self, index, image_path, data=None, count=-1):
         self._user_data[index] = data
 
         self._cell_images[index]['image'] = image_path
-        if count < 0:
+        if count < 1:
             self._labels[index]['text'] = ''
         else:
             self._labels[index]['text'] = str(count)

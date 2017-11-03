@@ -113,6 +113,13 @@ class Bag(object):
         """
         return self._items[index]
 
+    def get_slot_count(self):
+        return len(self._items)
+
+    def iter_items(self):
+        for idx in range(len(self._items)):
+            yield idx, self._items[idx]
+
     def get_items_count(self):
         count = 0
         for i in self._items:

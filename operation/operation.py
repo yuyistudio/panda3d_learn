@@ -53,7 +53,7 @@ class Operation(object):
                 self.mouse_pos_on_ground = hit_point
             elif hit_type == 'object':
                 entity = physical_node.get_python_tag('entity')()
-                if not entity.is_destroyed():
+                if entity and not entity.is_destroyed():
                     dist = (hit_point - G.cam.get_pos()).length()
                     hit_info.append((dist, physical_node, hit_point))
             elif hit_type == 'hero':
@@ -123,7 +123,6 @@ class Operation(object):
     def OP_left_mouse_click(self):
         if not self._enabled:
             return
-        log.debug("is click")
         self.OP_left_mouse_hold()
 
     def OP_left_mouse_hold(self):

@@ -7,6 +7,7 @@ from panda3d.core import Vec3, Texture, NodePath
 import random
 import logging
 from util import log
+from config import *
 
 
 class ObjInspectable(BaseComponent):
@@ -292,7 +293,7 @@ class ObjDestroyable(BaseComponent):
         self._key = config.get('key', 'left')
 
     def on_start(self):
-        self.get_entity().register_key_handler(self._key, self)
+        pass
 
     def allow_action(self, tool, key_type, mouse_entity):
         action_types = tool.get_action_types()

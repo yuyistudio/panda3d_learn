@@ -39,10 +39,6 @@ class GamePlayState(BaseGameState):
         G.operation.set_enabled(False)
 
     def on_enter(self, last_name):
-        log.process("creating game manager")
-        G.game_mgr = game_manager.GameManager()
-        G.camera_mgr = camera.CameraManager()
-
         log.process("creating inventory & menu")
         G.gui_mgr.create_inventory()
         G.gui_mgr.create_game_menu()
@@ -50,6 +46,10 @@ class GamePlayState(BaseGameState):
         G.gui_mgr.set_event_handler('game_menu.continue', self._handler_continue)
         G.gui_mgr.set_event_handler('game_menu.save', self._handler_save)
         G.gui_mgr.set_event_handler('game_menu.exit', self._handler_exit)
+
+        log.process("creating game manager")
+        G.game_mgr = game_manager.GameManager()
+        G.camera_mgr = camera.CameraManager()
 
         G.operation.set_enabled(True)
         G.accept("escape", self._handler_escape)

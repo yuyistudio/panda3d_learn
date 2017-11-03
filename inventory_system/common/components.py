@@ -5,6 +5,7 @@ the class,whose name is started with `Item`, will be used as ItemComponent.
 """
 
 from entity_system.base_component import *
+from config import *
 
 
 class BaseItemComponent(BaseComponent):

@@ -9,7 +9,7 @@ from chunk import chunk_manager, test_map_generator
 from craft_system import craft_manager
 from objects import ground, lights, box
 from panda3d.core import Vec3
-from inventory_system.inventory import Inventory
+from inventory_system.inventory_gui import InventoryGUI
 import json
 from util import fog
 
@@ -28,7 +28,14 @@ class GameManager(object):
         G.accept('f', self.fog.switch)
 
         # 背包系统
-        self.inventory = Inventory()
+        self.inventory = InventoryGUI()
+        self.inventory.create_to_inventory('apple', 4)
+        self.inventory.create_to_inventory('axe', 1, idx=1)
+        self.inventory.refresh()
+        def add_apples():
+            self.inventory.create_to_inventory('apple', 4)
+            self.inventory.refresh()
+        G.accept('c', add_apples)
 
         # 制造系统
         log.process('creating craft manager')

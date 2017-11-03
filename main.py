@@ -21,9 +21,8 @@ class Game(object):
         G.storage_mgr = storage_manager.StorageManager()
         G.storage_mgr.load()
 
-        G.spawner = spawner.Spawner()
-
         G.res_mgr = resource_manager.ResourceManager()
+        G.spawner = spawner.Spawner()
 
         G.config_mgr = config_manager.ConfigManager()
         G.config_mgr.register_map_config('perlin', PerlinMapGenerator)

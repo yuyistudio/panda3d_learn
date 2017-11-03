@@ -307,6 +307,8 @@ class ChunkManager(object):
                     x = (ic + .5) * self._chunk_tile_size
                     y = (ir + .5) * self._chunk_tile_size
                     new_obj = self._spawner.spawn(x, y, obj_info)
+                    pos = new_obj.get_pos()
+                    assert abs(pos.get_x() - x) < 0.01, '%s,%s => %s' % (x, y, pos)
                     assert new_obj  # 确保spawner可以返回正确的值
                     ref_count = sys.getrefcount(new_obj)
                     assert ref_count == 2, ref_count  # 确保spawner自己不会占用引用. new_obj占一个引用，参数占一个引用
