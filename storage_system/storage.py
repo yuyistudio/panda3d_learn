@@ -77,6 +77,7 @@ class Scene(object):
         self._data = load_json(self._get_filename())
         if self._data:
             return True
+        self._data = {}
         return False
 
 

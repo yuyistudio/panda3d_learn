@@ -30,8 +30,8 @@ class Item(BaseEntity):
             res += '(1.0)'
         return res
 
-    def __init__(self, name, category=None):
-        BaseEntity.__init__(self, name, category)
+    def __init__(self, name):
+        BaseEntity.__init__(self, name, entity_type=ENTITY_TYPE_ITEM)
 
     @staticmethod
     def set_items_config(config):
@@ -40,22 +40,14 @@ class Item(BaseEntity):
         :param config:
         :return:
         """
-        BaseEntity.set_config(config)
-
-    @staticmethod
-    def create(name, count):
-        item = Item.create_by_name("apple")
-        item.get_stackable().set_count(count)
-        return item
+        BaseEntity.set_item_config(config)
 
     @staticmethod
     def create_by_name(name, count=1):
-        config = BaseEntity._config.get(name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
+        config = BaseEntity._item_config.get(name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
         if config == BaseEntity.CONFIG_NOT_FOUND_FLAG:
-            raise RuntimeError("item not found : %s, config `%s`" % (name, BaseEntity._config))
+            raise RuntimeError("item not found : %s, config `%s`" % (name, BaseEntity._item_config))
         item = Item(name)
-        for com_name, com_config in config.iteritems():
-            item.add_component(com_name, com_config)
         item._post_init()
         if count > 1:
             item.get_stackable().set_count(count)
@@ -136,7 +128,7 @@ class ItemTest(unittest.TestCase):
         "axe": {},
     }
     def test_merge(self):
-        BaseEntity.set_config(ItemTest.items_config)
+        BaseEntity.update_config(ItemTest.items_config)
         a1 = Item.create('apple', 3)
         a2 = Item.create("apple", 5)
         a1.get_component(ItemPerishable).set_percentage(.8)
