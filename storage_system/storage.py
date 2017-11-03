@@ -27,7 +27,7 @@ def save_json(filename, data):
         with open(filename, 'w') as fout:
             pass
             json.dump(data, fout)
-        logging.error("storage save: %s", filename)
+        logging.info("storage saved: %s", filename)
         return True
     except Exception, e:
         logging.error("failed to save json to file `%s`, exception `%s`", filename, e)
@@ -45,7 +45,7 @@ def load_json(filename):
         return data
     except Exception, e:
         logging.error("failed to load file %s, exception `%s`", filename, e)
-        pass
+        return False
 
 
 class Scene(object):
@@ -74,7 +74,10 @@ class Scene(object):
 
     def load(self):
         self._loaded = True
-        self._data = load_json(self._get_filename()) or self._data
+        self._data = load_json(self._get_filename())
+        if self._data:
+            return True
+        return False
 
 
 class Slot(object):
@@ -84,10 +87,10 @@ class Slot(object):
         self._scenes = {}
         self._current_scene_name = None
 
-    def set_global(self, k, v):
+    def set(self, k, v):
         self._slot_data[k] = v
 
-    def get_global(self, k, must_exist=False):
+    def get(self, k, must_exist=False):
         if must_exist:
             return self._slot_data[k]
         return self._slot_data.get(k)
@@ -117,6 +120,18 @@ class Slot(object):
         self._scenes[k] = scene
         self._current_scene_name = k
         return scene
+
+    def switch_to_scene(self, scene_name):
+        """
+        检查是否存在scene。如果存在，则切换过去；否则，新建并切换过去。
+        :param scene_name:
+        :return: 参数指定的scene实例。
+        """
+        if not scene_name in self._scenes:
+            self.create_scene(scene_name)
+        else:
+            self.set_current_name(scene_name)
+        return self.get_current_scene()
 
     def set_current_name(self, scene_name):
         self._current_scene_name = scene_name

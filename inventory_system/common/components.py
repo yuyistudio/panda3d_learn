@@ -4,15 +4,20 @@
 the class,whose name is started with `Item`, will be used as ItemComponent.
 """
 
-from entity_system.base_component import BaseComponent
+from entity_system.base_component import *
 
 
 class BaseItemComponent(BaseComponent):
+    name = "BaseItemComponent"
+    entity_type = ENTITY_TYPE_ITEM
+
     def __init__(self):
         BaseComponent.__init__(self)
 
 
 class BaseMergeableComponent(BaseItemComponent):
+    name = "mergeable"
+
     def __init__(self):
         BaseItemComponent.__init__(self)
 
@@ -60,6 +65,7 @@ class ItemStackable(BaseItemComponent):
 
     def on_load(self, data):
         self._count = data
+
 
 class _SingleCustomValue(BaseItemComponent):
     def __init__(self, value):
@@ -174,6 +180,7 @@ class ItemTool(BaseItemComponent):
     def on_use(self, action_type):
         # 扣血
         pass
+
 
 class ItemDuration(BaseItemComponent):
     name = 'duration'

@@ -24,11 +24,16 @@ class Inventory(object):
     instance = None
     _mouse_item = None
 
-    def __init__(self, items_config):
+    def __init__(self, items_config=None):
+        """
+        :param items_config: FOR ONLY DEBUG PURPOSE !!!
+        :return:
+        """
         Inventory.instance = self
 
         # init_global_vars global resources
-        Item.set_items_config(items_config)
+        if items_config:
+            Item.set_items_config(items_config)
 
         # initial state
         self._bag_enabled = False
