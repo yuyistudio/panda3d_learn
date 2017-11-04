@@ -49,6 +49,11 @@ class Chunk(object):
         self._root_np = None
         self._is_doing_flatten = False
 
+        self._ground_items = []
+
+    def add_ground_item(self, ground_item):
+        self._ground_items.append(ground_item)
+
     def set_ground_geom(self, geom, data, block_body):
         self._ground_geom = geom
         self._ground_data = data
@@ -123,9 +128,10 @@ class Chunk(object):
         if self._root_np:
             self._root_np.remove_node()
         self._root_np = G.render.attach_new_node('root_%s' % self._key)
-        for model in self._static_models:
-            model.reparent_to(self._root_np)
-        G.loader.asyncFlattenStrong(self._root_np, True)
+        if self._static_models:
+            for model in self._static_models:
+                model.reparent_to(self._root_np)
+            G.loader.asyncFlattenStrong(self._root_np, True)
         self._is_doing_flatten = False
 
     def xy2rc(self, x, y):
@@ -192,6 +198,9 @@ class Chunk(object):
         self._tiles = None
         for obj in self._frozen_objects:
             obj.destroy(True)
+        for item in self._ground_items:
+            if not item.is_destroyed():
+                item.destroy()
         self._frozen_objects = None
 
     def _iterate_objects(self):
@@ -231,6 +240,15 @@ class Chunk(object):
             return
         self._iterator_dt = dt
         self._update_iterator.next()
+
+        # 更新所有的ground items
+        remained_items = []
+        for item in self._ground_items:
+            if item.is_destroyed():
+                continue
+            item.on_update(dt)
+            remained_items.append(item)
+        self._ground_items = remained_items
 
     def set_enabled(self, enabled):
         assert self._root_np

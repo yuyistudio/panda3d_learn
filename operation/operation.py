@@ -23,10 +23,20 @@ class Operation(object):
         self._left_key = keyboard.KeyStatus(
             'mouse1',
             self.OP_left_mouse_click, self.OP_left_mouse_hold,
+            self._on_hold_done,
         )
+        self._right_key = keyboard.KeyStatus(
+            'mouse3',
+            self.OP_right_mouse_click, None, None
+        )
+
         self._enabled = False
+        self._hold_to_move = False
         G.taskMgr.add(self.mouse_pick_task, "mouse_pick")
         G.accept('space', self.OP_craft)
+
+    def _on_hold_done(self):
+        self._hold_to_move = False
 
     def set_enabled(self, enabled):
         self._enabled = enabled
@@ -83,9 +93,19 @@ class Operation(object):
     def on_update(self, dt):
         if not self._enabled:
             return
-
         self.OP_keyboard_move()
+        if G.gui_mgr.is_mouse_on_gui():
+            return
         self._left_key.on_update(dt)
+        self._right_key.on_update(dt)
+
+        # 鼠标显示
+        if self._hit_obj_ref:
+            ent = self._hit_obj_ref()
+            if ent:
+                G.gui_mgr.get_mouse_gui().set_object_info(ent.get_name())
+        else:
+            G.gui_mgr.get_mouse_gui().set_object_info("")
 
     def _do_work_to_entity(self, entity, is_left_mouse):
 
@@ -120,23 +140,46 @@ class Operation(object):
         })
         return
 
+    def OP_right_mouse_click(self):
+        self.OP_on_mouse_clicked('right')
+
     def OP_left_mouse_click(self):
+        self.OP_on_mouse_clicked('left')
+
+    def OP_on_mouse_clicked(self, key):
         if not self._enabled:
             return
-        self.OP_left_mouse_hold()
+        if G.gui_mgr.is_mouse_on_gui():
+            return
+        if not self._click_on_object():
+            self._move_to_mouse()
 
     def OP_left_mouse_hold(self):
         if not self._enabled:
             return
+        if G.gui_mgr.is_mouse_on_gui():
+            return
 
+        if not self._hold_to_move:
+            if self._click_on_object():
+                return
+        self._hold_to_move = True
+        self._move_to_mouse()
+
+    def _move_to_mouse(self):
+        self.controller.set_context('buffered_work', None)
+        self.controller.set_context('move_min_dist', 0)
+        self.controller.set_context('target_pos', self.mouse_pos_on_ground)
+
+    def _click_on_object(self):
+        """
+        :return: True成功进行的动作
+        """
         if self._hit_obj_ref:
             obj = self._hit_obj_ref()
             if obj:
                 self._do_work_to_entity(obj, True)
-                return
-        self.controller.set_context('buffered_work', None)
-        self.controller.set_context('move_min_dist', 0)
-        self.controller.set_context('target_pos', self.mouse_pos_on_ground)
+                return True
 
     def OP_craft(self):
         if not self._enabled:

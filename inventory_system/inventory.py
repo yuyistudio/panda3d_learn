@@ -35,7 +35,7 @@ class Inventory(object):
         Item.set_items_config(items_config)
 
         # initial state
-        self._bag_enabled = False
+        self._bag_enabled = True
 
         # create bags
         self._item_bar = Bag(13)

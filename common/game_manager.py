@@ -3,15 +3,16 @@
 __author__ = 'Leon'
 
 from variable.global_vars import G
-from util import log
+from util import log, random_util
 from hero import create
 from chunk import chunk_manager, test_map_generator
 from craft_system import craft_manager
 from objects import ground, lights, box
 from panda3d.core import Vec3
-from inventory_system.inventory_gui import InventoryGUI
+from inventory_system.inventory_gui import InventoryManager
 import json
 from util import fog
+import random
 
 
 class GameManager(object):
@@ -28,13 +29,9 @@ class GameManager(object):
         G.accept('f', self.fog.switch)
 
         # 背包系统
-        self.inventory = InventoryGUI()
-        self.inventory.create_to_inventory('apple', 4)
-        self.inventory.create_to_inventory('axe', 1, idx=1)
-        self.inventory.refresh()
+        self.inventory = InventoryManager()
         def add_apples():
-            self.inventory.create_to_inventory('apple', 4)
-            self.inventory.refresh()
+            self.give_hero_item('log', 40)
         G.accept('c', add_apples)
 
         # 制造系统
@@ -53,6 +50,9 @@ class GameManager(object):
             log.process('slot storage not found, entering default scene')
             self.switch_to_scene('default')
 
+        # 载入inventory
+        self.inventory.on_load(self.slot)
+
         # 设置chunk manager的存档
         log.process('creating chunk manager')
         self.chunk_mgr = chunk_manager.ChunkManager(
@@ -64,6 +64,59 @@ class GameManager(object):
 
         self._ground = ground.create()  # TODO remove it
         lights.create()  # TODO remove it
+
+    def give_hero_item(self, item):
+        res = self.inventory.add_item(item)
+        self.inventory.refresh_inventory()
+        return res
+
+    def give_hero_item_by_name(self, name, count):
+        """
+        用于玩家获取新物品。如果放不下了，则放到地上。
+        :param name:
+        :param count:
+        :return:
+        """
+        # 获取每样物品的最大堆叠
+        max_stack_count = 1
+        com_config = G.res_mgr.get_item_config_by_name(name)['components']
+        stackable = com_config.get('stackable')
+        if stackable:
+            max_stack_count = stackable.get('max_count', 1)
+
+        # 添加到背包
+        while count > 0:
+            remained_item = self.inventory.create_to_inventory(name, min(count, max_stack_count))
+            count -= max_stack_count
+            if remained_item:
+                # 添加失败时，将剩余的物品全部放到地面上
+                center_pos = self.hero.get_pos()
+                radius = self.hero.get_radius() * 2
+                self.put_item_on_ground(remained_item, center_pos, radius)
+                self.create_item_on_ground(center_pos, radius, name, count)
+                break
+        self.inventory.refresh_inventory()
+
+    def put_item_on_ground(self, item, center_pos, radius):
+        ground_item = G.spawner.spawn_ground_item(item, center_pos, radius)
+        self.chunk_mgr.add_ground_item(ground_item)
+
+    def create_item_on_ground(self, center_pos, radius, name, count):
+        max_stack_count = self._get_max_stack_count(name)
+        while count > 0:
+            item = self.inventory.create_item(name, min(count, max_stack_count))
+            count -= max_stack_count
+            ground_item = G.spawner.spawn_ground_item(item, center_pos, radius)
+            self.chunk_mgr.add_ground_item(ground_item)
+
+    def _get_max_stack_count(self, name):
+        # 获取每样物品的最大堆叠
+        max_stack_count = 1
+        com_config = G.res_mgr.get_item_config_by_name(name)['components']
+        stackable = com_config.get('stackable')
+        if stackable:
+            max_stack_count = stackable.get('max_count', 1)
+        return max_stack_count
 
     def switch_to_scene(self, scene_name):
         """
@@ -116,6 +169,7 @@ class GameManager(object):
             G.operation.set_target(self.hero)
 
     def save_scene(self):
+        self.inventory.on_save(self.slot)
         self.chunk_mgr.on_save()
         self.slot.set('hero', self.hero.on_save())
         self.scene.save()

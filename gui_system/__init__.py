@@ -17,10 +17,12 @@ class GUIManager(object):
         self._main_menu = None
         self._game_menu = None
         self._mouse = MouseGUI()
-        self._mouse.setItem(None)
-        self._mouse.setText(None)
         G.schedule(self.onUpdate, 'mouse_gui_update')
         self._event_handler = {}
+        self._mouse_on = False
+
+    def is_mouse_on_gui(self):
+        return False
 
     def _menu_click_handler(self, event_name, idx, button):
         if not self._event_handler or button != 'mouse1':
@@ -31,6 +33,9 @@ class GUIManager(object):
         handler = self._event_handler.get(event_name)
         if handler:
             handler(**kwargs)
+
+    def get_mouse_gui(self):
+        return self._mouse
 
     def set_event_handler(self, event, handler):
         self._event_handler[event] = handler

@@ -53,7 +53,7 @@ class Bag(object):
             total_count = stackable.get_count()
             if total_count == 1:
                 self._set_item(index, None)
-                return item
+                return self.get_switched_item()
             half_count = int(total_count / 2)
             if half_count > max_count:
                 half_count = max_count
@@ -89,11 +89,13 @@ class Bag(object):
         :return:
         """
         res = self._switched_item
+        # logging.warn('get switched item: %s' % res)
         self._switched_item = None
         return res
 
     def set_switched_item(self, item):
-        assert not self._switched_item, "take care of switch item please"
+        # logging.warn('set switched item: %s' % item)
+        assert not self._switched_item, "take care of the switched item please"
         self._switched_item = item
 
     def allow_item(self, item, index):

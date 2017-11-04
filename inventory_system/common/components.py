@@ -55,7 +55,7 @@ class ItemStackable(BaseItemComponent):
 
     def set_count(self, count):
         assert 1 <= count <= self._max_count, 'invalid stackable count %d' % count
-        self._count = count
+        self._count = min(max(0, count), self._max_count)
 
     def change_count(self, count_delta):
         self._count += count_delta

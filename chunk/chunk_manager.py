@@ -198,6 +198,13 @@ class ChunkManager(object):
         chk.add_object(obj)
         return obj
 
+    def add_ground_item(self, ground_item):
+        pos = ground_item.get_pos()
+        r, c = self.xy2rc(pos.get_x(), pos.get_y())
+        chunk = self._chunks.get((r, c))
+        assert chunk, (r, c, ground_item)
+        chunk.add_ground_item(ground_item)
+
     def _load_chunk(self, r, c):
         chunk_self = self
         chunk_key = (r, c)
@@ -259,6 +266,13 @@ class ChunkManager(object):
                              half_tile_size)
                 body.addShape(shape, TransformState.makePos(pos))
         return body
+
+    def spawn_object(self, name, x, y):
+        new_obj = self._spawner.spawn_default(name, x, y)
+        r, c = self.xy2rc(x, y)
+        chunk = self._chunks[(r, c)]
+        assert chunk, 'cannot spawn outside of the view area (%s,%s)' % (x, y)
+        chunk.add_object(new_obj)
 
     def _load_chunk_real(self, r, c):
         """

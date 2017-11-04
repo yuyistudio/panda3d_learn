@@ -3,10 +3,18 @@
       "texture": "assets/images/items/apple.png",
       "components": {
         "stackable": {
-          "max_count": 5
+          "max_count": 20
         },
         "perishable": {
           "time": 80
+        }
+      }
+  },
+  "log": {
+      "texture": "assets/images/items/log.png",
+      "components": {
+        "stackable": {
+          "max_count": 10
         }
       }
   },
