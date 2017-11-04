@@ -8,8 +8,7 @@
 from variable.global_vars import G
 from util import storage
 from panda3d.core import Texture
-
-ITEM_PATH_FORMAT = "assets/images/items/%s"
+import os
 
 
 class ResourceManager(object):
@@ -19,12 +18,14 @@ class ResourceManager(object):
         self._scenes = storage.load_json_file('assets/json/scenes.json')
         self._item_config = storage.load_json_file('assets/json/items.json')
         self._object_config = storage.load_json_file('assets/json/objects.json')
-        assert self._scenes and self._item_config and self._object_config
+        assert self._scenes and self._item_config and self._object_config, (not self._scenes, not self._item_config, not self._object_config)
 
+        # 载入item textures
         self._item_textures = {}
-        images = 'apple axe orange iron silver sapling cooking_pit cobweb'.split()
-        for image_path in images:
-            full_path = ITEM_PATH_FORMAT % (image_path + '.png')
+
+        for folder, filename in storage.iter_files('assets/images/items'):
+            full_path = os.path.join(folder, filename)
+            full_path = full_path.replace('\\', '/')
             used_texture = G.loader.loadTexture(full_path)
             used_texture.set_magfilter(Texture.FT_nearest)
             self._item_textures[full_path] = used_texture
@@ -57,3 +58,6 @@ class ResourceManager(object):
     def get_item_texture(self, image_path):
         return self._item_textures.get(image_path)
 
+    def get_item_texture_by_name(self, item_name):
+        config = self.get_item_config_by_name(item_name)
+        return self.get_item_texture(config['texture'])

@@ -155,6 +155,7 @@ class BaseEntity(object):
         for com_type, com in self._components.iteritems():
             key = get_component_name(com_type)
             value = com.on_save()
+            assert key, key
             assert not isinstance(value, type(None)), "unexpected, com[%s].on_save() returns `%s`" % (key, value)
             if value != NO_STORAGE_FLAG:
                 data[key] = value
@@ -164,9 +165,9 @@ class BaseEntity(object):
         }
 
     def on_load(self, data):
-        for com_name, com_data in data.iteritems():
+        for com_name, com_data in data['components'].iteritems():
             com_type = name2component_class.get(com_name)
-            assert com_type, "unidentified component %s" % com_name
+            assert com_type, "unidentified component `%s`" % com_name
             self.get_component(com_type).on_load(com_data)
 
     def need_update(self):

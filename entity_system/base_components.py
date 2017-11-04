@@ -6,8 +6,11 @@ import config as gconf
 from panda3d.core import Vec3, Texture, NodePath
 import random
 import logging
-from util import log
+from inventory_system.common import consts
+from util import log, tween
 from config import *
+from direct.interval.LerpInterval import LerpPosInterval
+from direct.interval.IntervalGlobal import *
 
 
 class ObjInspectable(BaseComponent):
@@ -29,7 +32,7 @@ class ObjModel(BaseComponent):
         model_path = config['model_file']
         self.scale = config.get('scale', 1.)
         self.collider_scale = config.get('collider_scale', 1.)
-        self.is_static = config.get('static', True)  # TODO 对于静态物体，可以合并模型进行优化. np.flatten_strong()
+        self.is_static = config.get('static', False)  # TODO 对于静态物体，可以合并模型进行优化. np.flatten_strong()
         self.model_np = NodePath("unknown_model")
         G.loader.loadModel(model_path).get_children().reparent_to(self.model_np)
         self.model_np.set_scale(self.scale)
@@ -38,13 +41,15 @@ class ObjModel(BaseComponent):
             tex.set_magfilter(Texture.FT_nearest)
             tex.set_minfilter(Texture.FT_linear)
         self.enabled = True
+        if not self.is_static:
+            self.model_np.reparent_to(G.render)
 
         physics_config = config.get('physics')
         self.physical_np = None
         if physics_config:
             self.physical_np, self.half_size = G.physics_world.add_cylinder_collider(
                 self.model_np, mass=0, bit_mask=gconf.BIT_MASK_OBJECT,
-                reparent=not self.is_static,
+                reparent=False,
                 scale=self.collider_scale,
             )
             body = self.physical_np.node()
@@ -72,7 +77,7 @@ class ObjModel(BaseComponent):
         if self.physical_np:
             G.physics_world.remove_collider(self.physical_np)
             self.physical_np.remove_node()
-        if self.is_static:
+        if self.model_np:
             self.model_np.remove_node()
 
     def on_save(self):
@@ -92,7 +97,9 @@ class ObjModel(BaseComponent):
     def set_pos(self, pos):
         if self.physical_np:
             self.physical_np.set_pos(pos)
-        if self.is_static:
+            if self.is_static:
+                self.model_np.set_pos(pos)
+        else:
             self.model_np.set_pos(pos)
 
     def get_pos(self):
@@ -100,8 +107,13 @@ class ObjModel(BaseComponent):
             return self.physical_np.get_pos()
         return self.model_np.get_pos()
 
-    def get_static_models(self):
+    def get_models(self):
         return [self.model_np]
+
+    def get_static_models(self):
+        if self.is_static:
+            return [self.model_np]
+        return []
 
 from common.animator import Animator
 
@@ -264,10 +276,16 @@ class ObjLoot(BaseComponent):
     entity_type = ENTITY_TYPE_OBJECT
 
     def __init__(self, config):
-        self._loots = config.get('objects')
+        self._loots = config.get('loots')
+        assert self._loots, config
+        assert isinstance(self._loots, list)
 
     def on_loot(self):
-        log.debug('loot: %s', self._loots)
+        ent = self.get_entity()
+        center_pos = ent.get_pos()
+        radius = ent.get_radius()
+        for loot_name, loot_count in self._loots:
+            G.game_mgr.create_item_on_ground(center_pos, radius, loot_name, loot_count)
 
 
 class ObjDestroyable(BaseComponent):
@@ -354,6 +372,64 @@ class ObjEntrance(BaseComponent):
         return self._scene_name
 
 
+class ObjGroundItem(BaseComponent):
+    name = 'ground_item'
+    entity_type = ENTITY_TYPE_OBJECT
+
+    def __init__(self, config):
+        BaseComponent.__init__(self)
+        self._item = None
+        self._model = None
+        self._tween = None
+        self._timer = None
+        self._timer_check_hero = None
+
+    def on_start(self):
+        com_model = self.get_entity().get_component(ObjModel)
+        self._model = com_model.get_models()[0]
+
+    def set_item(self, item):
+        self._item = item
+        tex = None
+        if item:
+            tex = G.res_mgr.get_item_texture_by_name(item.get_name())
+        self._model.setTransparency(1)
+        self._model.set_texture(tex)
+        self._tween = tween.Tween(loop_type=tween.LoopType.PingPong,
+                                  duration=random.random() + 0.5,
+                                  ease_type=tween.EaseType.easeInOutCubic,
+                                  to_value=0,
+                                  from_value=random.random() + 0.5,
+                                  on_update=self._on_pos_update,
+                                  )
+        self._timer = tween.Tween(duration=240 + random.random() * 3, on_complete=self._on_timeout)
+        self._timer_check_hero = tween.Tween(duration=random.random() * .3 + 0.3, on_complete=self._check_hero, loop_type=tween.LoopType.Loop)
+
+    def _check_hero(self):
+        p1 = G.game_mgr.hero.get_pos()
+        p2 = self.get_entity().get_pos()
+        dist = (p1 - p2).length()
+        if dist < 4:
+            res = G.game_mgr.give_hero_item(self._item)
+            if res == consts.BAG_PUT_TOTALLY:
+                self.get_entity().destroy(False)
+
+    def _on_pos_update(self, pos_z):
+        ent = self.get_entity()
+        pos = ent.get_pos()
+        pos.set_z(pos_z)
+        ent.set_pos(pos)
+
+    def on_update(self, dt):
+        self._tween.on_update(dt)
+        self._timer.on_update(dt)
+        self._timer_check_hero.on_update(dt)
+        self._model.look_at(G.cam)
+
+    def _on_timeout(self):
+        self.get_entity().destroy(False)
+
+
 class ObjHeroController(BaseComponent):
     name = 'hero_controller'
     entity_type = ENTITY_TYPE_OBJECT
@@ -400,7 +476,7 @@ class ObjHeroController(BaseComponent):
                 actions.ActionHeroWork('hero do action'),
 
             ),
-            actions.ActionIdle('hero idle', 1, 'fail'),
+            actions.ActionIdle('hero idle', 1, 'success'),
             actions.Loop(
                 actions.ActionAnim('scared_anim', 'scared', {'done': 'success'}),
                 actions.ActionHeroWanderDecision('hero wandering', 20),

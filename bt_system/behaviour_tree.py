@@ -338,6 +338,8 @@ class BehaviourTree(object):
         assert not self._waiting_events  # 不支持同时等待事件和timer
         assert self._paused_seconds < 0  # 只能同时等待1个
         self._paused_seconds = seconds
+        if isinstance(next_status, basestring):
+            next_status = STR_TO_STATUS[next_status]
         self._paused_next_status = next_status
 
     def wait_for_event(self, event_name, cb=None):

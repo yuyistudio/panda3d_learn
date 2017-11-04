@@ -79,10 +79,19 @@
                 "iname": "箱子"
             },
             "model": {
+                "static": true,
                 "model_file": "assets/blender/box.egg",
                 "physics": {
                     "shape": "box"
                 }
+            }
+        }
+    },
+    "ground_item": {
+        "components": {
+            "ground_item": {},
+            "model": {
+                "model_file": "assets/blender/plane.egg"
             }
         }
     },
@@ -92,11 +101,6 @@
             "inspectable": {
                 "iname": "树木"
             },
-            "loot": {
-                "objects": {
-                    "apple": 2
-                }
-            },
             "destroyable": {
                 "types": {
                     "pick": {"efficiency": 0.2},
@@ -105,14 +109,17 @@
                 "duration": 1,
                 "key": "left"
             },
-            "loot": {},
+            "loot": {
+                "loots": [["apple", 3], ["log", 3]]
+            },
             "model": {
+                "static": true,
                 "model_file": "assets/blender/tree.egg",
                 "physics": {
                     "shape": "box"
                 },
                 "scale": 3.7,
-                "collider_scale": [0.2, 0.2, 0.9]
+                "collider_scale": [0.4, 0.4, 0.9]
             }
         }
     },
@@ -122,6 +129,7 @@
                 "iname": "灌木"
             },
             "model": {
+                "static": true,
                 "model_file": "assets/blender/twig.egg",
                 "physics": {
                     "shape": "box"

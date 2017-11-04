@@ -24,7 +24,7 @@ def add_directional(parent_np):
     light = DirectionalLight("DiretionalSunLight")
     light_np = parent_np.attachNewNode(light)
     parent_np.setLight(light_np)
-    light_np.setPos(30, -30, 30)
+    light_np.setPos(30, -30, 60)
     light_np.look_at(0, 0, 0)
     light.setScene(parent_np)
     light.setShadowCaster(True)

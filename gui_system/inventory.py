@@ -17,12 +17,13 @@ class Inventory(object):
             1, 13,
             self._click_cb, self._hover_cb,
             ALIGNMENT_BOTTOM)
+        scale = 0.7
         self._user_hover_cb = None
         self._user_click_cb = None
         self._bag.setPos(-0.01, 0)
-        self._bag.setScale(0.5)
+        self._bag.setScale(scale)
         self._item_bar.setPos(0, 0.01)
-        self._item_bar.setScale(0.5)
+        self._item_bar.setScale(scale)
 
     def set_bag_item(self, idx, image_path, user_data, count=0):
         self._bag.set_item(idx, image_path, user_data, count)

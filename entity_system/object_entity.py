@@ -59,7 +59,7 @@ class ObjectEntity(BaseEntity):
     def get_radius(self):
         return self._radius
 
-    def destroy(self, on_removing_chunk=False):
+    def destroy(self, consider_chunk_mgr=True):
         """
         因为GC有延时，所以需要显式destroy物体。
         destroy不会立即生效，以免当前帧出错。应当保证被destroy的物体不会再产生交互。
@@ -72,7 +72,7 @@ class ObjectEntity(BaseEntity):
 
         # TODO 实现一种更优雅的方式去destroy物体，比如先保存到一个队列中，过一会儿再删除
         def delayed_destroy(task):
-            if not on_removing_chunk:
+            if consider_chunk_mgr:
                 G.game_mgr.chunk_mgr.remove_entity(self)
             for com in self._components.itervalues():
                 com.destroy()
