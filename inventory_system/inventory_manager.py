@@ -30,6 +30,9 @@ class InventoryManager(object):
             self.refresh_inventory()
         return res
 
+    def get_action_tool(self):
+        return self._inventory_data.get_action_tool()
+
     def take_mouse_item(self):
         item = self._inventory_data.get_mouse_item()
         self._inventory_data.set_mouse_item(None)

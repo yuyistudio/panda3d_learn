@@ -38,6 +38,11 @@ class EquipmentSlots(object):
     def get_switched_equipment(self):
         return self._bag.get_switched_item()
 
+    def _item_destroy_fn(self, index):
+        equip = self._bag.take_item_at(index)
+        self._on_unequip_item(equip, self._index2name[index])
+        G.game_mgr.inventory.refresh_inventory()
+
     def get_equipment(self, name):
         idx = self._name2index.get(name, -1)
         if idx < 0:
@@ -54,6 +59,7 @@ class EquipmentSlots(object):
         equip_item = self._bag.take_item_at(idx)
         if equip_item:
             equippable = equip_item.get_component(ItemEquippable)
+            assert equippable, equip_item.get_name()
             equippable.on_unequipped(self._index2name[idx])
         return equip_item
 
@@ -73,12 +79,26 @@ class EquipmentSlots(object):
         target_slots = equippable.get_slots()
         if slot_type in target_slots:
             self._put_equip_at(index, equip_item)
-            log.debug("!!! %s, bag %s", old_equipment, self._bag._items)
-            if old_equipment:
-                old_equipment.get_component(ItemEquippable).on_unequipped(slot_type)
-            equippable.on_equipped(slot_type)
+            self._on_unequip_item(old_equipment, slot_type)
+            self._on_equip_item(equip_item, slot_type)
             return True
         return False
+
+        G.game_mgr.inventory.refresh_inventory()
+    def _on_equip_item(self, equip_item, slot_type):
+        """
+        装备的时候，做一些统一的操作
+        :param equip_item:
+        :return:
+        """
+        equip_item.destroy_fn = self._item_destroy_fn
+        equip_item.destroy_params = self._name2index[slot_type]
+        equippable = equip_item.get_component(ItemEquippable)
+        equippable.on_equipped(slot_type)
+
+    def _on_unequip_item(self, equip_item, slot_type):
+        if equip_item:
+            equip_item.get_component(ItemEquippable).on_unequipped(slot_type)
 
     def _put_equip_at(self, index, item):
         """
@@ -127,10 +147,10 @@ class EquipmentSlots(object):
 
             switched_equip = self.get_switched_equipment()
             if switched_equip:
-                switched_equip.get_component(ItemEquippable).on_unequipped(slot_type)
+                self._on_unequip_item(switched_equip, slot_type)
                 bag.put_item_at(index, switched_equip)
 
-            equip.get_component(ItemEquippable).on_equipped(slot_type)
+            self._on_equip_item(equip, slot_type)
             return True
         assert not self.get_switched_equipment()
         return False

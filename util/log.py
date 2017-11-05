@@ -3,11 +3,16 @@
 __author__ = 'Leon'
 
 import logging
+import sys
+import os
 
 
 def _common(prefix, *args):
+    frame = sys._getframe(1)
+    frame2 = sys._getframe(2)
+    line_info = '[%s:%s]' % (os.path.basename(frame2.f_code.co_filename), frame.f_back.f_lineno)
     lst = list(args)
-    lst[0] = prefix % lst[0]
+    lst[0] = prefix % (line_info, lst[0])
     logging.warn(*tuple(lst))
 
 
@@ -17,7 +22,7 @@ def process(*args):
     :param args:
     :return:
     """
-    _common('[PROCESS] %s', *args)
+    _common('[PROCESS] %s %s', *args)
 
 
 def debug(*args):
@@ -26,7 +31,7 @@ def debug(*args):
     :param args:
     :return:
     """
-    _common('[DEBUG] %s', *args)
+    _common('[DEBUG] %s %s', *args)
 
 
 def error(*args):
@@ -35,5 +40,5 @@ def error(*args):
     :param args:
     :return:
     """
-    _common('[ERROR] %s', *args)
+    _common('[ERROR] %s %s', *args)
     # assert False, args

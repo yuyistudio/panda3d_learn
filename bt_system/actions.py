@@ -14,13 +14,6 @@ Decision = ActionFn
 
 from inventory_system.common.components import ItemTool
 
-fake_tool = ItemTool({
-    "action_types": {
-        "pick": {"duration": 10},
-        "cut": {"duration": 4},
-    }
-})
-
 
 class BaseAction(IActionNode):
     def __init__(self, name):
@@ -96,7 +89,10 @@ class ActionMove(BaseAction):
     def on_action(self):
         current_pos = self.get_entity().get_pos()
         target_dir = self.bt.get('target_dir')
-        target_pos = self.bt.get('target_pos')
+        if target_dir:
+            self.bt.set('target_pos', None)
+        else:
+            target_pos = self.bt.get('target_pos')
 
         if not target_dir and not target_pos:
             return FAIL
@@ -232,7 +228,12 @@ class ActionHeroWork(BaseAction):
             log.debug('work done: %s', buffered_work.get('anim_name', 'craft'))
 
             entity = buffered_work['target_entity']
-            if entity.do_action(fake_tool, 'left', G.game_mgr.get_mouse_item()):
+            tool = G.operation.get_action_tool()
+            if tool != buffered_work.get('tool'):
+                # 执行动作时，不能中途换工具的哦~
+                return FAIL
+            if entity.do_action(tool, 'left', G.game_mgr.get_mouse_item()):
+                tool.on_use(buffered_work['action_type'])
                 return SUCCESS
             else:
                 return FAIL

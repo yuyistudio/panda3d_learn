@@ -317,6 +317,8 @@ class ObjDestroyable(BaseComponent):
         pass
 
     def allow_action(self, tool, key_type, mouse_entity):
+        if not tool:
+            return False
         action_types = tool.get_action_types()
         best_action_type, max_duration = self._get_best_action(action_types)
         result = {
@@ -456,6 +458,7 @@ class ObjHeroController(BaseComponent):
         self.controller = None
         self.target_pos = Vec3()
         self.bt = None
+        self.move_action = None
 
     def _always_success(self, event_name):
         return bt.SUCCESS
@@ -468,8 +471,17 @@ class ObjHeroController(BaseComponent):
             return bt.RUNNING
         return bt.FAIL
 
+    def is_doing_action(self):
+        cur = self.bt.get_current()
+        return cur and cur.get_name() == 'hero_action'
+
     def set_context(self, k, v):
         self.bt.set(k, v)
+
+    def start_move_action(self):
+        cur = self.bt.get_current()
+        if cur and cur.get_name() != 'hero_moving':
+            self.bt.reset()
 
     def emit_event(self, event_name, event_data=DEFAULT_EVENT_DATA):
         # log.debug("event: %s, %s", event_name, event_data)
@@ -487,11 +499,10 @@ class ObjHeroController(BaseComponent):
         bt_root = actions.Priority(
             actions.ActionFn('event handling', self.checking_event),
             actions.UntilFailure(
-                actions.ActionMove('hero moving', False),
-                actions.ActionHeroWork('hero do action'),
-
+                actions.ActionMove('hero_moving', False),
+                actions.ActionHeroWork('hero_action'),
             ),
-            actions.ActionIdle('hero idle', 1, 'success'),
+            actions.ActionIdle('hero idle', 10, 'success'),
             actions.Loop(
                 actions.ActionAnim('scared_anim', 'scared', {'done': 'success'}),
                 actions.ActionHeroWanderDecision('hero wandering', 20),
