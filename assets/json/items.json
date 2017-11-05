@@ -31,7 +31,11 @@
           "tool_name": "axe",
           "slots": ["right_hand"]
         },
-        "duration": {}
+        "tool": {
+          "action_types": {"cut": {"duration": 4}},
+          "distance": 0.5,
+          "use_times": 3
+        }
       }
   },
   "sword": {
@@ -41,7 +45,11 @@
           "tool_name": "sword",
           "slots": ["right_hand"]
         },
-        "duration": {}
+        "tool": {
+          "action_types": {"cut": {"duration": 2}},
+          "distance": 0.5,
+          "use_times": 3
+        }
       }
   }
 }

@@ -118,6 +118,9 @@ class IActionNode(INode):
     def __str__(self):
         return '[%s]' % self._name
 
+    def get_name(self):
+        return self._name
+
     def inner_on_enter(self):
         log("[bt] entering %s", self)
         self.on_enter()
@@ -255,7 +258,7 @@ class BehaviourTree(object):
             node.on_enter()
         self._current_node = node
 
-    def _get_current(self):
+    def get_current(self):
         return self._current_node
 
     def _setup_node_relations(self, node):
@@ -269,6 +272,10 @@ class BehaviourTree(object):
         else:
             node.bt = self
             node.on_init()
+
+    def reset(self):
+        self._clear_conditions()
+        self._set_current_action(None, True)
 
     def _clear_conditions(self):
         self._paused_seconds = -1
@@ -301,7 +308,7 @@ class BehaviourTree(object):
             return True
 
     def get_current_action(self):
-        current = self._get_current()
+        current = self.get_current()
         return current._name if current else None
 
     def get(self, key):
@@ -314,19 +321,12 @@ class BehaviourTree(object):
 
     def set(self, key, value):
         """
-        读取BT级别的context
+        设置BT级别的context
         :param key:
         :param value:
         :return:
         """
-        old_value = self._context.get(key)
-        if old_value == value:
-            return
         self._context[key] = value
-        # 立即处理context变化事件
-        if not old_value:
-            self._set_current_action(None, True)
-            self._clear_conditions()
 
     def wait_for_seconds(self, seconds, next_status=SUCCESS):
         """
@@ -423,15 +423,14 @@ class BehaviourTree(object):
             return self.NOT_UPDATE
 
         update_type = self.SHORT_CUT_UPDATE
-        if not self._get_current() \
+        if not self.get_current() \
                 or self._refresh_timer > self._refresh_duration:
             self._refresh_timer = 0
             log('[bt] traverse')
             self._root.inner_on_traverse()
             update_type = self.FULL_UPDATE
 
-        log('[bt] ==> %s', self._get_current())
-        self._last_status = self._get_current().on_action()
+        self._last_status = self.get_current().on_action()
         self._print_action('action')
         if self._last_status != RUNNING:
             # 当前Action已经运行完毕。

@@ -5,6 +5,7 @@ from util import trigger, log, freq
 from variable.global_vars import G
 from util import keyboard
 from entity_system.base_components import ObjHeroController
+from inventory_system.common.components import ItemTool
 
 
 class GroundEntity(object):
@@ -29,7 +30,7 @@ class GroundEntity(object):
         return False
 
     def get_radius(self):
-        return 0
+        return 0.5
 
     def do_action(self, tool, key_type, mouse_entity):
         if mouse_entity:
@@ -67,6 +68,15 @@ class Operation(object):
         self._hold_to_move = False
         G.taskMgr.add(self.mouse_pick_task, "mouse_pick")
         G.accept('space', self.OP_craft)
+
+        # 当没有工具的时候，默认用手来执行action
+        self.tool_hand = ItemTool({
+            "action_types": {
+                "pick": {"duration": 1},
+                "cut" : {"duration": 1},
+            },
+            "distance"    : 0.1
+        })
 
     def _on_hold_done(self):
         self._hold_to_move = False
@@ -149,21 +159,20 @@ class Operation(object):
         else:
             G.gui_mgr.get_mouse_gui().set_object_info("")
 
+    def get_action_tool(self):
+        tool = G.game_mgr.inventory.get_action_tool()
+        if tool:
+            return tool.get_component(ItemTool)
+        return self.tool_hand
+
     def _do_work_to_entity(self, entity, key):
         if not self._enabled:
             return False
-        log.debug("do work to entity!")
-        from inventory_system.common.components import ItemTool
-
-        fake_tool = ItemTool({
-            "action_types": {
-                "pick": {"duration": 10},
-                "cut": {"duration": 1},
-            },
-            "distance": 1
-        })
+        if self.controller.is_doing_action():
+            return True
+        action_tool = self.get_action_tool()
         mouse_item = G.game_mgr.get_mouse_item()
-        action_info = entity.allow_action(fake_tool, key, mouse_item)
+        action_info = entity.allow_action(action_tool, key, mouse_item)
         if not action_info:
             log.debug('action not allowed for entity: %s', entity)
             return False
@@ -171,14 +180,16 @@ class Operation(object):
 
         # 远程武器应当将tool的distance设置得比较大。
         # 这样所有的action都可以抽象为 行走+动作 了。
-        gap = self.target_ref().get_radius() + entity.get_radius() + fake_tool.get_distance()
+        gap = self.target_ref().get_radius() + entity.get_radius() + action_tool.get_distance()
         self.controller.set_context('move_min_dist', gap)
         self.controller.set_context('target_pos', entity.get_pos())
+        self.controller.start_move_action()
         extra_info = {
             'target_entity': entity,
             'key'          : key,
             'ctrl'         : False,
             'min_dist'     : gap,
+            'tool': action_tool,
         }
         extra_info.update(action_info)
         self.controller.set_context('buffered_work', extra_info)
@@ -215,6 +226,7 @@ class Operation(object):
             self.controller.set_context('buffered_work', None)
             self.controller.set_context('move_min_dist', 0)
             self.controller.set_context('target_pos', self.mouse_pos_on_ground)
+            self.controller.start_move_action()
 
     def _click_on_object(self, key):
         """
@@ -247,3 +259,5 @@ class Operation(object):
         self.controller.set_context('buffered_work', None)
         move_dir = Vec3(dx, dy, 0)
         self.controller.set_context('target_dir', move_dir)
+        self.controller.start_move_action()
+

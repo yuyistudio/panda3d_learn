@@ -32,6 +32,8 @@ class Item(BaseEntity):
 
     def __init__(self, name):
         BaseEntity.__init__(self, name, entity_type=ENTITY_TYPE_ITEM)
+        self.destroy_fn = None
+        self.destroy_params = None
 
     @staticmethod
     def set_items_config(config):
@@ -69,6 +71,8 @@ class Item(BaseEntity):
         让该物品消失！
         :return:
         """
+        if self.destroy_fn:
+            self.destroy_fn(self.destroy_params)
         self._destroyed = True
 
     def get_stackable(self):

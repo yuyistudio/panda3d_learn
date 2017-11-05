@@ -54,6 +54,9 @@ class Inventory(object):
             "bag": self._bag,
         }
 
+    def get_action_tool(self):
+        return self._equipment_slots.get_equipment("right_hand")
+
     def __str__(self):
         lst = ["_mouse\t%s" % Inventory._mouse_item]
         for k, v in self._bags.iteritems():

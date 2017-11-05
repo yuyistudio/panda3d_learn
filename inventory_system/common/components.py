@@ -80,12 +80,6 @@ class _SingleCustomValue(BaseItemComponent):
     def get_value(self):
         return self._value
 
-    def on_load(self, data):
-        self._value = data
-
-    def on_save(self):
-        return self._value.get_storage_data()
-
 
 class Nutrition(object):
     def __init__(self, food, sanity):
@@ -94,6 +88,13 @@ class Nutrition(object):
 
     def __str__(self):
         return '[food:%d|sanity:%d]' % (self._food, self._sanity)
+
+    def on_save(self):
+        return {'food': self._food, 'sanity': self._sanity}
+
+    def on_load(self, data):
+        self._food = data['food']
+        self._sanity = data['sanity']
 
 
 class ItemEdible(_SingleCustomValue):
@@ -185,7 +186,6 @@ class ItemEquippable(BaseItemComponent):
         G.game_mgr.change_equipment_model(slot_type, None)
 
     def on_quick_action(self, bag, idx, mouse_item):
-        log.debug("equipp!!! quick!!")
         if not mouse_item:
             G.game_mgr.quick_equip(bag, idx)
 
@@ -205,6 +205,10 @@ class ItemTool(BaseItemComponent):
         BaseItemComponent.__init__(self)
         self._action_types = config.get('action_types')
         self._distance = config.get('distance')
+        self._duration = config.get('use_times')
+        self._endless_use = False
+        if not self._duration:
+            self._endless_use = True
 
     def get_action_types(self):
         return self._action_types
@@ -213,24 +217,15 @@ class ItemTool(BaseItemComponent):
         return self._distance
 
     def on_use(self, action_type):
-        # 扣血
-        pass
+        if self._endless_use:
+            return
+        # 扣除duration
+        self._duration -= 1
+        if self._duration < 1:
+            self.get_entity().destroy()
 
+    def on_save(self):
+        return {'duration': self._duration}
 
-class ItemDuration(BaseItemComponent):
-    name = 'duration'
-
-    def __init__(self, config):
-        self._max_duration = config.get('duration', 10)
-        self._duration = self._max_duration
-
-    def change(self, delta):
-        self._duration += delta
-        if self._duration > self._max_duration:
-            self._duration = self._max_duration
-        elif self._duration < 0:
-            self._duration = 0
-
-    def is_broken(self):
-        return self._duration <= 0
-
+    def on_load(self, data):
+        self._duration = data['duration']

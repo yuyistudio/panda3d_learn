@@ -26,6 +26,7 @@ class GameManager(object):
         self.hero = None
         self.equipment_models = None
 
+
         # 雾效
         f = .7
         self.fog = fog.LinearFog(f, f, f, 70, 140)
