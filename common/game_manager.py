@@ -5,14 +5,16 @@ __author__ = 'Leon'
 from variable.global_vars import G
 from util import log, random_util
 from hero import create
+from entity_system.base_components import ObjGroundItem
 from chunk import chunk_manager, test_map_generator
 from craft_system import craft_manager
 from objects import ground, lights, box
 from panda3d.core import Vec3
-from inventory_system.inventory_gui import InventoryManager
+from inventory_system.inventory_manager import InventoryManager
 import json
 from util import fog
 import random
+from hero.tool import HeroEquipmentModels
 
 
 class GameManager(object):
@@ -22,6 +24,7 @@ class GameManager(object):
         self.scene = None
         self.map_generator = None
         self.hero = None
+        self.equipment_models = None
 
         # 雾效
         f = .7
@@ -31,7 +34,9 @@ class GameManager(object):
         # 背包系统
         self.inventory = InventoryManager()
         def add_apples():
-            self.give_hero_item('log', 40)
+            self.give_hero_item_by_name('axe', 2)
+            self.give_hero_item_by_name('sword', 2)
+
         G.accept('c', add_apples)
 
         # 制造系统
@@ -65,6 +70,21 @@ class GameManager(object):
         self._ground = ground.create()  # TODO remove it
         lights.create()  # TODO remove it
 
+    def change_equipment_model(self, slot_name, equipment_name):
+        self.equipment_models.change_model(slot_name, equipment_name)
+
+    def quick_equip(self, bag, idx):
+        """
+        调用者确保bag[index]是一个可以装备的物品。
+        :param bag:
+        :param idx:
+        :return:
+        """
+        return self.inventory.quick_equip(bag, idx)
+
+    def get_mouse_item(self):
+        return self.inventory.get_mouse_item()
+
     def give_hero_item(self, item):
         res = self.inventory.add_item(item)
         self.inventory.refresh_inventory()
@@ -96,6 +116,14 @@ class GameManager(object):
                 self.create_item_on_ground(center_pos, radius, name, count)
                 break
         self.inventory.refresh_inventory()
+
+    def put_mouse_item_on_ground(self, pos):
+        mouse_item = self.inventory.take_mouse_item()
+        self.inventory.get_mouse_item()
+        ground_item = G.spawner.spawn_ground_item(mouse_item, pos, 0)
+        ground_item.get_component(ObjGroundItem).set_freeze_time(3)
+        self.chunk_mgr.add_ground_item(ground_item)
+        self.inventory.refresh_mouse()
 
     def put_item_on_ground(self, item, center_pos, radius):
         ground_item = G.spawner.spawn_ground_item(item, center_pos, radius)
@@ -167,6 +195,8 @@ class GameManager(object):
                 self.hero = G.spawner.spawn_from_storage(hero_data)
             assert self.hero
             G.operation.set_target(self.hero)
+
+        self.equipment_models = HeroEquipmentModels(self.hero)
 
     def save_scene(self):
         self.inventory.on_save(self.slot)

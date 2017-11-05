@@ -6,6 +6,8 @@ the class,whose name is started with `Item`, will be used as ItemComponent.
 
 from entity_system.base_component import *
 from config import *
+from util import log
+from variable.global_vars import G
 
 
 class BaseItemComponent(BaseComponent):
@@ -14,6 +16,9 @@ class BaseItemComponent(BaseComponent):
 
     def __init__(self):
         BaseComponent.__init__(self)
+
+    def on_quick_action(self, bag, idx, mouse_item):
+        pass
 
 
 class BaseMergeableComponent(BaseItemComponent):
@@ -87,6 +92,9 @@ class Nutrition(object):
         self._food = food
         self._sanity = sanity
 
+    def __str__(self):
+        return '[food:%d|sanity:%d]' % (self._food, self._sanity)
+
 
 class ItemEdible(_SingleCustomValue):
     name = 'edible'
@@ -94,8 +102,14 @@ class ItemEdible(_SingleCustomValue):
     def __init__(self, config):
         _SingleCustomValue.__init__(self, Nutrition(config.get("food", 30), config.get("sanity", 3)))
 
-    def get_nutrition(self):
+    def _get_nutrition(self):
         return self.get_value()
+
+    def on_quick_action(self, bag, idx, mouse_item):
+        log.debug("nutrition: %s", self._get_nutrition())
+        ent = self.get_entity()
+        if ent.use_item(1) < 1:
+            ent.destroy()
 
 
 class SingleValueMergeable(BaseMergeableComponent):
@@ -148,12 +162,32 @@ class ItemEquippable(BaseItemComponent):
     name = 'equippable'
 
     def __init__(self, config):
-        self._equip_slots = config.get('slots', ["right_hand"])
+        self._equip_slots = config.get('slots', [])
+        self._tool_name = config.get('tool_name')
+        self._tool_model = config.get('tool_model')
         assert len(self._equip_slots) == len(set(self._equip_slots)), 'duplicated slot found: `%s`' % self._equip_slots
         assert self._equip_slots, 'invalid equp slots'
 
     def get_slots(self):
         return self._equip_slots
+
+    def on_equipped(self, slot_type):
+        log.debug("equipped at %s", slot_type)
+        if self._tool_name:
+            G.game_mgr.change_equipment_model(slot_type, self._tool_name)
+        elif self._tool_model:
+            pass
+        else:
+            assert False
+
+    def on_unequipped(self, slot_type):
+        # 放下屠刀，立地成佛 ♪(＾∀＾●)ﾉ
+        G.game_mgr.change_equipment_model(slot_type, None)
+
+    def on_quick_action(self, bag, idx, mouse_item):
+        log.debug("equipp!!! quick!!")
+        if not mouse_item:
+            G.game_mgr.quick_equip(bag, idx)
 
 
 class ItemTool(BaseItemComponent):

@@ -41,10 +41,6 @@ class MouseGUI(object):
             self._image.show()
         else:
             self._image.hide()
-        import random
-        from util import log
-        log.debug('size: %s, pos: %s', self._label['frameSize'], self._label.getPos())
-        log.debug('size: %s', self._label['frameSize'])
 
     def setVisible(self, visible):
         if visible:
@@ -56,6 +52,7 @@ class MouseGUI(object):
 
     def set_mouse_item_info(self, text):
         self._mouse_item_info = text
+        self._setup_text()
 
     def set_object_info(self, text):
         self._object_info = text

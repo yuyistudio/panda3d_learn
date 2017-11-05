@@ -4,12 +4,14 @@ from common.item import Item
 from common.bag import Bag
 from common.equipmentslots import EquipmentSlots
 from common import consts
+from components import *
 
 EQUIP_SLOT_HEAD = "head"
 EQUIP_SLOT_LEFT_HAND = "left_hand"
 EQUIP_SLOT_RIGHT_HAND = "right_hand"
 EQUIP_SLOT_BODY = "body"
 EQUIP_SLOT_FEET = "feet"
+EQUIP_SLOT_BAG = "bag"
 
 
 class Inventory(object):
@@ -17,9 +19,9 @@ class Inventory(object):
     Consists of several bags that are carried on by the hero.
     There bags are identified by names.
     This class also provide convenient method to interact with opened bags(such box or chest on the ground),
-        but these box doesn't belong to this _inventory.
+        but these box doesn't belong to this _inventory_data.
 
-    All actions with _inventory, should perform with Inventory.instance.
+    All actions with _inventory_data, should perform with Inventory.instance.
     """
     instance = None
     _mouse_item = None
@@ -39,7 +41,12 @@ class Inventory(object):
 
         # create bags
         self._item_bar = Bag(13)
-        self._equipment_slots = EquipmentSlots([EQUIP_SLOT_BODY, EQUIP_SLOT_LEFT_HAND, EQUIP_SLOT_RIGHT_HAND, EQUIP_SLOT_BODY, EQUIP_SLOT_FEET])
+        self._equipment_slots = EquipmentSlots(
+            [EQUIP_SLOT_HEAD,
+             EQUIP_SLOT_LEFT_HAND, EQUIP_SLOT_RIGHT_HAND,
+             EQUIP_SLOT_BODY,
+             EQUIP_SLOT_FEET,
+             EQUIP_SLOT_BAG])
         self._bag = Bag(10)
         self._bags = {
             "item_bar": self._item_bar,
@@ -85,7 +92,7 @@ class Inventory(object):
 
     def add_item(self, item):
         """
-        Give an item to _inventory, add it to the item-bar or add it to the bag.
+        Give an item to _inventory_data, add it to the item-bar or add it to the bag.
         :param item:
         :return: one macro of BAG_PUT_**
         """
@@ -146,10 +153,20 @@ class Inventory(object):
 
     def mouse_click_at_equipment(self, index):
         if Inventory._mouse_item:
-            self._equipment_slots.put_equip_at(index, Inventory._mouse_item)
-            Inventory._mouse_item = self._equipment_slots.get_switched_equipment()
+            if self._equipment_slots.put_equipment_with_check(index, Inventory._mouse_item):
+                Inventory.set_mouse_item(self._equipment_slots.get_switched_equipment())
+                return True
+            else:
+                return False
         else:
-            self._equipment_slots.take_equipment_at(index)
+            equipment = self._equipment_slots.take_equipment_at(index)
+            if equipment:
+                Inventory.set_mouse_item(equipment)
+                return True
+            return False
+
+    def quick_equip(self, bag, index):
+        return self._equipment_slots.quick_equip(bag, index)
 
     @staticmethod
     def mouse_click_at_bag(bag, index):
@@ -226,7 +243,7 @@ class InventoryTest(unittest.TestCase):
         inv = Inventory(self.items_config)
         inv.add_item(inv.create_item("apple", 4))
         axe = Inventory.create_item("axe")
-        inv.get_equipment_slots().equip(axe)
+        inv.get_equipment_slots()._equip(axe)
         data = inv.on_save()
 
         Inventory.instance = None

@@ -37,7 +37,6 @@ class ObjectEntity(BaseEntity):
         for com in self._components.itervalues():
             action_type = com.allow_action(tool, key_type, mouse_entity)
             if action_type:
-                log.debug("allowed %s, com %s", action_type, com)
                 return action_type
         return False
 

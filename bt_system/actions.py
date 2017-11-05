@@ -222,7 +222,8 @@ class ActionHeroWork(BaseAction):
             self._controller.look_at(target_entity.get_pos())
         anim = buffered_work.get('anim_name', 'tool')
         self._animator.play(anim, once=True)
-        self.bt.wait_for_event('anim.%s.done' % anim, self._anim_cb)
+        event_name = buffered_work.get('event_name', 'done')
+        self.bt.wait_for_event('anim.%s.%s' % (anim, event_name), self._anim_cb)
         return RUNNING
 
     def _anim_cb(self, event_name):
@@ -231,7 +232,7 @@ class ActionHeroWork(BaseAction):
             log.debug('work done: %s', buffered_work.get('anim_name', 'craft'))
 
             entity = buffered_work['target_entity']
-            if entity.do_action(fake_tool, 'left', None):
+            if entity.do_action(fake_tool, 'left', G.game_mgr.get_mouse_item()):
                 return SUCCESS
             else:
                 return FAIL

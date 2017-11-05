@@ -106,6 +106,9 @@ class Bag(object):
         """
         return True
 
+    def remove_item_at(self, index):
+        self._items[index] = None
+
     def get_cell_count(self):
         return len(self._items)
 
@@ -113,6 +116,8 @@ class Bag(object):
         """
         get item reference
         """
+        if index >= len(self._items):
+            log.error("invalid index: %d >= %d, %s", index, len(self._items), self._items)
         return self._items[index]
 
     def get_slot_count(self):

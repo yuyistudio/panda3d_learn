@@ -11,6 +11,7 @@ ALIGNMENT_BOTTOM = 0
 ALIGNMENT_LEFT = 1
 ALIGNMENT_RIGHT = 2
 ALIGNMENT_CENTER = 3
+ALIGNMENT_BOTTOM_RIGHT = 4
 
 
 class GridLayout(object):
@@ -38,7 +39,7 @@ class GridLayout(object):
 
         self._scale = 1
         self._cell_normal_scale = 1
-        self._cell_hover_scale = 1.2
+        self._cell_hover_scale = 1.05
         self._offset = Point3(0)
         self._normal_color = (.9, .9, .9, 1)
         self._hover_color = (1, 0.95, 0.95, 1)
@@ -64,6 +65,9 @@ class GridLayout(object):
         elif alignment == ALIGNMENT_RIGHT:
             self._base_pos = Point3(-total_width / 2, 0, 0)
             self._container.reparentTo(G.a2dRightCenter)
+        elif alignment == ALIGNMENT_BOTTOM_RIGHT:
+            self._base_pos = Point3(-total_width / 2, 0, total_height / 2)
+            self._container.reparent_to(G.a2dBottomRight)
         else:
             self._base_pos = Point3(0,0,0)
             self._container.reparentTo(G.aspect2d)

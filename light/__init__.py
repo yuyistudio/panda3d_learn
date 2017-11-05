@@ -41,7 +41,7 @@ def add_directional(parent_np):
 def add_spot(parent_np):
     light = parent_np.attachNewNode(Spotlight("Spot"))
     light.node().setScene(parent_np)
-    light.node().setColor(LVector4(0.7, 0.7, 0.7, 1))
+    light.node().setColor(LVector4(0.3, 0.3, 0.3, 1))
     light.node().setShadowCaster(True)
     if config.SHOW_LIGHT_FRUSTUM:
         light.node().showFrustum()

@@ -128,6 +128,9 @@ class ObjAnimator(BaseComponent):
         self._animator.play('idle', once=False)
         self._physical_np = G.physics_world.add_player_controller(self._anim_np, bit_mask=gconf.BIT_MASK_HERO)
 
+    def get_actor_np(self):
+        return self._anim_np
+
     def set_animator_handler(self, handler):
         self._animator.set_event_handler(handler)
 
@@ -316,7 +319,11 @@ class ObjDestroyable(BaseComponent):
     def allow_action(self, tool, key_type, mouse_entity):
         action_types = tool.get_action_types()
         best_action_type, max_duration = self._get_best_action(action_types)
-        return best_action_type
+        result = {
+            'action_type': best_action_type,
+            'anim_name': 'tool',
+        }
+        return result
 
     def _get_best_action(self, action_types):
         max_duration = 0
@@ -380,9 +387,11 @@ class ObjGroundItem(BaseComponent):
         BaseComponent.__init__(self)
         self._item = None
         self._model = None
-        self._tween = None
-        self._timer = None
+        self._tween_animation = None
+        self._timer_auto_remove = None
         self._timer_check_hero = None
+        self._freeze_timer = 0
+        self._freeze_time = 0
 
     def on_start(self):
         com_model = self.get_entity().get_component(ObjModel)
@@ -395,15 +404,18 @@ class ObjGroundItem(BaseComponent):
             tex = G.res_mgr.get_item_texture_by_name(item.get_name())
         self._model.setTransparency(1)
         self._model.set_texture(tex)
-        self._tween = tween.Tween(loop_type=tween.LoopType.PingPong,
-                                  duration=random.random() + 0.5,
-                                  ease_type=tween.EaseType.easeInOutCubic,
-                                  to_value=0,
-                                  from_value=random.random() + 0.5,
-                                  on_update=self._on_pos_update,
-                                  )
-        self._timer = tween.Tween(duration=240 + random.random() * 3, on_complete=self._on_timeout)
+        self._tween_animation = tween.Tween(loop_type=tween.LoopType.PingPong,
+                                            duration=random.random() * .3 + 0.2,
+                                            ease_type=tween.EaseType.easeInOutCubic,
+                                            to_value=0,
+                                            from_value=random.random() * .2 + 0.3,
+                                            on_update=self._on_pos_update,
+                                            )
+        self._timer_auto_remove = tween.Tween(duration=240 + random.random() * 3, on_complete=self._on_timeout)
         self._timer_check_hero = tween.Tween(duration=random.random() * .3 + 0.3, on_complete=self._check_hero, loop_type=tween.LoopType.Loop)
+
+    def set_freeze_time(self, time):
+        self._freeze_time = time
 
     def _check_hero(self):
         p1 = G.game_mgr.hero.get_pos()
@@ -421,10 +433,13 @@ class ObjGroundItem(BaseComponent):
         ent.set_pos(pos)
 
     def on_update(self, dt):
-        self._tween.on_update(dt)
-        self._timer.on_update(dt)
-        self._timer_check_hero.on_update(dt)
         self._model.look_at(G.cam)
+        self._tween_animation.on_update(dt)
+        if self._freeze_timer < self._freeze_time:
+            self._freeze_timer += dt
+            return
+        self._timer_auto_remove.on_update(dt)
+        self._timer_check_hero.on_update(dt)
 
     def _on_timeout(self):
         self.get_entity().destroy(False)
