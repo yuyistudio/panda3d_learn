@@ -1,12 +1,7 @@
 #encoding: utf8
 
-from direct.actor.Actor import  Actor
-from direct.showbase.ShowBase import ShowBase
-from panda3d.core import *
-loadPrcFile("../config.prc")
-from direct.gui.DirectGui import *
 import centermenu
-import inventory
+import inventory_gui
 from variable.global_vars import G
 from mouse_info import MouseGUI
 
@@ -22,7 +17,7 @@ class GUIManager(object):
         self._mouse_on = False
 
     def is_mouse_on_gui(self):
-        return False
+        return self._inventory.is_hover()
 
     def _menu_click_handler(self, event_name, idx, button):
         if not self._event_handler or button != 'mouse1':
@@ -41,13 +36,16 @@ class GUIManager(object):
         self._event_handler[event] = handler
 
     def create_inventory(self):
-        self._inventory = inventory.Inventory()
+        self._inventory = inventory_gui.InventoryGUI()
 
     def set_inventory_cb(self, click_cb, hover_cb):
         self._inventory.set_user_cb(hover_cb, click_cb)
 
     def set_bag_item(self, idx, image_path, user_data, count=0):
         self._inventory.set_bag_item(idx, image_path, user_data, count)
+
+    def set_equipments_item(self, idx, image_path, user_data, count=0):
+        self._inventory.set_equipments_item(idx, image_path, user_data, count)
 
     def set_item_bar_item(self, idx, image_path, user_data, count=0):
         self._inventory.set_item_bar_item(idx, image_path, user_data, count)

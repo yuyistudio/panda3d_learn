@@ -7,12 +7,45 @@ from util import keyboard
 from entity_system.base_components import ObjHeroController
 
 
+class GroundEntity(object):
+    """
+    模拟对object的操作。
+    """
+    def __init__(self):
+        self._pos = None
+
+    def set_pos(self, pos):
+        self._pos = pos
+
+    def get_pos(self):
+        return self._pos
+
+    def allow_action(self, tool, key_type, mouse_entity):
+        if mouse_entity:
+            if key_type == 'left':
+                return {'action_type': 'throw_item_at', 'anim_name': 'pickup', 'event_name': 'pickup'}
+            else:
+                return {'action_type': 'trow_item_now', 'anim_name': 'pickup', 'event_name': 'pickup'}
+        return False
+
+    def get_radius(self):
+        return 0
+
+    def do_action(self, tool, key_type, mouse_entity):
+        if mouse_entity:
+            if key_type == 'left':
+                G.game_mgr.put_mouse_item_on_ground(self._pos)
+            else:
+                log.debug("throw item now!")
+
+
 class Operation(object):
     """
     Operation为游戏游玩时的玩家输入。不包括主菜单。
     OP_xxx 表示一个接受玩家输入的操作
     """
     def __init__(self, op_target):
+        self._ground_entity = GroundEntity()
         self.target_ref = None
         self.controller = None
         self.set_target(op_target)
@@ -39,7 +72,16 @@ class Operation(object):
         self._hold_to_move = False
 
     def set_enabled(self, enabled):
-        self._enabled = enabled
+        if enabled:
+            # 为啥要加个延时呢？因为DirectGUI的点击事件触发了之后，让operation enable了。
+            # 这个事件还会再触发operation的点击。
+            # DirectGUI比较挫，无法知道鼠标是不是正在GUI上。暂时通过这种trick的方式解决问题吧。
+            def defered(task):
+                self._enabled = enabled
+                return task.done
+            G.taskMgr.doMethodLater(.33, defered, 'enable_operation')
+        else:
+            self._enabled = enabled
 
     def on_tool_hit(self, hit):
         self.target_ref().tool.onHit(hit)
@@ -107,10 +149,10 @@ class Operation(object):
         else:
             G.gui_mgr.get_mouse_gui().set_object_info("")
 
-    def _do_work_to_entity(self, entity, is_left_mouse):
-
+    def _do_work_to_entity(self, entity, key):
         if not self._enabled:
-            return
+            return False
+        log.debug("do work to entity!")
         from inventory_system.common.components import ItemTool
 
         fake_tool = ItemTool({
@@ -120,25 +162,27 @@ class Operation(object):
             },
             "distance": 1
         })
-        key = 'left' if is_left_mouse else 'right'
-        action_type = entity.allow_action(fake_tool, key, None)
-        if not action_type:
+        mouse_item = G.game_mgr.get_mouse_item()
+        action_info = entity.allow_action(fake_tool, key, mouse_item)
+        if not action_info:
             log.debug('action not allowed for entity: %s', entity)
-            return
+            return False
+        assert 'action_type' in action_info and 'anim_name' in action_info
 
         # 远程武器应当将tool的distance设置得比较大。
         # 这样所有的action都可以抽象为 行走+动作 了。
         gap = self.target_ref().get_radius() + entity.get_radius() + fake_tool.get_distance()
         self.controller.set_context('move_min_dist', gap)
         self.controller.set_context('target_pos', entity.get_pos())
-        self.controller.set_context('buffered_work', {
-            'action_type': action_type,
+        extra_info = {
             'target_entity': entity,
-            'key': key,
-            'ctrl': False,
-            'min_dist': gap,
-        })
-        return
+            'key'          : key,
+            'ctrl'         : False,
+            'min_dist'     : gap,
+        }
+        extra_info.update(action_info)
+        self.controller.set_context('buffered_work', extra_info)
+        return True
 
     def OP_right_mouse_click(self):
         self.OP_on_mouse_clicked('right')
@@ -151,8 +195,8 @@ class Operation(object):
             return
         if G.gui_mgr.is_mouse_on_gui():
             return
-        if not self._click_on_object():
-            self._move_to_mouse()
+        if not self._click_on_object(key):
+            self._move_to_mouse(key)
 
     def OP_left_mouse_hold(self):
         if not self._enabled:
@@ -161,25 +205,29 @@ class Operation(object):
             return
 
         if not self._hold_to_move:
-            if self._click_on_object():
+            if self._click_on_object('left'):
                 return
         self._hold_to_move = True
-        self._move_to_mouse()
+        self._move_to_mouse('left')
 
-    def _move_to_mouse(self):
-        self.controller.set_context('buffered_work', None)
-        self.controller.set_context('move_min_dist', 0)
-        self.controller.set_context('target_pos', self.mouse_pos_on_ground)
+    def _move_to_mouse(self, key):
+        if key == 'left':
+            self.controller.set_context('buffered_work', None)
+            self.controller.set_context('move_min_dist', 0)
+            self.controller.set_context('target_pos', self.mouse_pos_on_ground)
 
-    def _click_on_object(self):
+    def _click_on_object(self, key):
         """
         :return: True成功进行的动作
         """
         if self._hit_obj_ref:
             obj = self._hit_obj_ref()
-            if obj:
-                self._do_work_to_entity(obj, True)
-                return True
+        else:
+            self._ground_entity.set_pos(self.mouse_pos_on_ground)
+            obj = self._ground_entity
+        if self._do_work_to_entity(obj, key):
+            return True
+        return False
 
     def OP_craft(self):
         if not self._enabled:

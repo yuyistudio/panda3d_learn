@@ -7,9 +7,10 @@ from inventory_system.common import consts
 from variable.global_vars import G
 from util import log, keyboard
 from collections import namedtuple
+from inventory_system.common.components import ItemEquippable
 
 
-ItemData = namedtuple('ItemData', ['item', 'bag'])
+ItemData = namedtuple('ItemData', ['item', 'bag', 'is_equipment'])
 
 
 class InventoryManager(object):
@@ -18,18 +19,32 @@ class InventoryManager(object):
     即，将 数据 和 展示 结合起来。
     """
     def __init__(self):
-        self._inventory = Inventory(G.res_mgr.get_item_config())
+        self._inventory_data = Inventory(G.res_mgr.get_item_config())
         G.gui_mgr.set_inventory_cb(self._on_item_clicked, self._on_item_hover)
         self.refresh_mouse()
         self.refresh_inventory()
 
+    def quick_equip(self, bag, idx):
+        res = self._inventory_data.quick_equip(bag, idx)
+        if res:
+            self.refresh_inventory()
+        return res
+
+    def take_mouse_item(self):
+        item = self._inventory_data.get_mouse_item()
+        self._inventory_data.set_mouse_item(None)
+        return item
+
+    def get_mouse_item(self):
+        return self._inventory_data.get_mouse_item()
+
     def on_save(self, storage):
-        storage.set('inventory_data', self._inventory.on_save())
+        storage.set('inventory_data', self._inventory_data.on_save())
 
     def on_load(self, storage):
         data = storage.get('inventory_data')
         if data:
-            self._inventory.on_load(data)
+            self._inventory_data.on_load(data)
             self.refresh_mouse()
             self.refresh_inventory()
 
@@ -46,16 +61,42 @@ class InventoryManager(object):
 
     def _on_item_clicked(self, data, idx, button):
         assert data, (data, idx, button)
-        if button == 'mouse1':
-            if keyboard.is_ctrl_down():
-                self._inventory.half_to_mouse(data.bag, idx)
-            else:
-                self._inventory.mouse_click_at_bag(data.bag, idx)
+        if data.is_equipment:
+            # 装备栏
+            if button == 'mouse1':
+                # 装备鼠标物品
+                old_mouse_item = self.get_mouse_item()
+                if self._inventory_data.mouse_click_at_equipment(idx):
+                    current_mouse_item = self.get_mouse_item()
+                    assert old_mouse_item != current_mouse_item
+                    self.refresh_inventory()
+                    self.refresh_mouse()
+            log.debug("equipment clicked!")
+            return
+        else:
+            # 普通物品栏
+            if button == 'mouse1':
+                if keyboard.is_ctrl_down():
+                    # 分堆一半到鼠标
+                    self._inventory_data.half_to_mouse(data.bag, idx)
+                else:
+                    # 直接点击物品
+                    self._inventory_data.mouse_click_at_bag(data.bag, idx)
+            elif button == 'mouse3':
+                # 快捷操作
+                if data.item:
+                    data.item.on_quick_action(data.bag, idx, self.get_mouse_item())
+                    if data.item.is_destroyed():
+                        data.bag.remove_item_at(idx)
             self.refresh_inventory()
             self.refresh_mouse()
 
     def refresh_mouse(self):
-        item = self._inventory.get_mouse_item()
+        """
+        将数据同步到GUI。
+        :return:
+        """
+        item = self._inventory_data.get_mouse_item()
         mouse = G.gui_mgr.get_mouse_gui()
         if not item:
             mouse.setVisible(False)
@@ -67,10 +108,10 @@ class InventoryManager(object):
         mouse.setVisible(True)
 
     def add_item(self, item):
-        return self._inventory.add_item(item)
+        return self._inventory_data.add_item(item)
 
     def create_item(self, name, count):
-        return self._inventory.create_item(name, count)
+        return self._inventory_data.create_item(name, count)
 
     def create_to_inventory(self, name, count):
         """
@@ -79,8 +120,8 @@ class InventoryManager(object):
         :param count:
         :return:
         """
-        item = self._inventory.create_item(name, count)
-        res = self._inventory.add_item(item)
+        item = self._inventory_data.create_item(name, count)
+        res = self._inventory_data.add_item(item)
         if res == consts.BAG_PUT_TOTALLY:
             return None
         else:
@@ -99,8 +140,12 @@ class InventoryManager(object):
         将数据同步到GUI。
         :return:
         """
-        fns = [G.gui_mgr.set_item_bar_item, G.gui_mgr.set_bag_item]
-        bags = [self._inventory.get('item_bar'), self._inventory.get('bag')]
+        fns = [G.gui_mgr.set_item_bar_item,
+               G.gui_mgr.set_bag_item,
+               G.gui_mgr.set_equipments_item]
+        bags = [self._inventory_data.get('item_bar'),
+                self._inventory_data.get('bag'),
+                self._inventory_data.get('equipment_slots')]
         for bag_idx in range(len(bags)):
             bag = bags[bag_idx]
             set_item_gui = fns[bag_idx]
@@ -109,7 +154,7 @@ class InventoryManager(object):
                     set_item_gui(
                         idx,
                         None,
-                        ItemData(item=None, bag=bag),
+                        ItemData(item=None, bag=bag, is_equipment=bag_idx == 2),
                         0,
                     )
                     continue
@@ -118,7 +163,7 @@ class InventoryManager(object):
                 set_item_gui(
                     idx,
                     texture,
-                    ItemData(item=item, bag=bag),
+                    ItemData(item=item, bag=bag, is_equipment=bag_idx == 2),
                     item.get_count(),
                 )
 

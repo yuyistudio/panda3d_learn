@@ -55,6 +55,7 @@ class GamePlayState(BaseGameState):
         G.accept("escape", self._handler_escape)
 
     def _handler_continue(self):
+        G.operation.set_enabled(True)
         self._main_menu_visible = False
         G.gui_mgr.set_game_menu_visible(self._main_menu_visible)
 
@@ -66,6 +67,7 @@ class GamePlayState(BaseGameState):
         sys.exit(0)
 
     def _handler_escape(self):
+        G.operation.set_enabled(self._main_menu_visible)
         self._main_menu_visible = not self._main_menu_visible
         G.gui_mgr.set_game_menu_visible(self._main_menu_visible)
 

@@ -1,10 +1,7 @@
 #encoding: utf8
 
-from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
-from panda3d.core import loadPrcFile
-
-loadPrcFile("./config.prc")
+from direct.showbase.ShowBase import ShowBase
 
 
 class GlobalVariable(ShowBase):
@@ -14,7 +11,7 @@ class GlobalVariable(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
         self.disableMouse()
-        self.render.setAntialias(AntialiasAttrib.MMultisample)
+        # self.render.setAntialias(AntialiasAttrib.MMultisample, 1)
         self.debug = True
 
     def schedule(self, fn, name="update"):
@@ -36,7 +33,6 @@ class GlobalVariable(ShowBase):
         return Point3(mx, 0, my)
 
 G = GlobalVariable()
-
 
 # 添加一些全局遍历。
 # 不在G的实例化时直接赋值的原因是，这些全局遍历也依赖于G进行初始化。

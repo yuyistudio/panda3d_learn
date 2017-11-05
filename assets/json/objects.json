@@ -1,6 +1,6 @@
 {
     "hero": {
-        "radius": 0.6,
+        "radius": 0.3,
         "components": {
             "inspectable": {
                 "iname": "主角"
@@ -22,11 +22,11 @@
                     },
                     "boring":{"rate":2},
                     "tool": {
-                        "rate": 4.1
+                        "rate": 8.1
                     },
                     "pickup": {
                         "events": [["pickup", 10], ["done", 20]],
-                        "rate": 1
+                        "rate": 3
                     },
                     "idle": {},
                     "craft": {
@@ -51,14 +51,14 @@
                 "animations": {
                     "walk": {
                         "events":[["start", 0], ["middle", 40]],
-                        "rate": 6
+                        "rate": 16
                     },
                     "scared": {
                         "rate": 1
                     },
                     "boring":{"rate":2},
                     "tool": {
-                        "rate": 4.1
+                        "rate": 11.1
                     },
                     "pickup": {
                         "events": [["pickup", 10], ["done", 20]],
@@ -96,7 +96,7 @@
         }
     },
     "tree": {
-        "radius": 1,
+        "radius": 0.3,
         "components": {
             "inspectable": {
                 "iname": "树木"

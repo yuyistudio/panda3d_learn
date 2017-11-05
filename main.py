@@ -1,17 +1,18 @@
 #encoding: utf8
 
+from panda3d.core import load_prc_file
+load_prc_file("./config.prc")
+from variable.global_vars import G
 from common import game_states, config_manager, spawner, resource_manager, context
 from assets.map_generators.perlin import PerlinMapGenerator
 import gui_system
 from hero import create
 from panda3d.core import *
-from panda3d.core import loadPrcFile
 from storage_system import storage_manager
 from objects import ground, box, lights
 from util import states, log
-from variable.global_vars import G
 from operation import operation
-loadPrcFile("./config.prc")
+from direct.filter.CommonFilters import CommonFilters
 
 
 class Game(object):
@@ -39,14 +40,10 @@ class Game(object):
 
         log.process("entering main loop")
         G.accept('f1', self._render_analysis)
-        G.accept('f2', self._flatten)
 
         G.taskMgr.add(self.main_loop, name="main_loop")
         G.run()
         log.process("main loop finished")
-
-    def _flatten(self):
-        G.render.flatten_strong()
 
     def _render_analysis(self):
         G.render.analyze()
@@ -57,7 +54,4 @@ class Game(object):
         G.state_mgr.on_update(dt)
         return task.cont
 
-from panda3d.core import loadPrcFileData
-loadPrcFileData("", "want-directtools #t")
-loadPrcFileData("", "want-tk #t")
 Game()

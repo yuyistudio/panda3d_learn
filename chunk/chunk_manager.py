@@ -178,7 +178,7 @@ class ChunkManager(object):
         pos = entity.get_pos()
         r, c = self.xy2rc(pos.get_x(), pos.get_y())
         chunk = self._chunks.get((r, c))
-        assert chunk, (r, c, chunk)
+        assert chunk, (r, c, chunk, entity, entity.get_name())
         chunk.remove_entity(entity)
         chunk.get_flatten_fn()()
 

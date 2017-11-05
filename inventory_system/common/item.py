@@ -53,6 +53,24 @@ class Item(BaseEntity):
             item.get_stackable().set_count(count)
         return item
 
+    def use_item(self, count):
+        """
+        :param count:
+        :return: 返回剩余的count
+        """
+        if self._stackable:
+            self._stackable.change_count(-count)
+            return self._stackable.get_count()
+        else:
+            return 0
+
+    def destroy(self):
+        """
+        让该物品消失！
+        :return:
+        """
+        self._destroyed = True
+
     def get_stackable(self):
         return self._stackable
 
@@ -63,6 +81,10 @@ class Item(BaseEntity):
         if self._stackable:
             return self._stackable.get_count()
         return 1
+
+    def on_quick_action(self, bag, idx, mouse_item):
+        for com in self._components.itervalues():
+            com.on_quick_action(bag, idx, mouse_item)
 
     def on_merge_with(self, item1):
         """

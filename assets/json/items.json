@@ -7,6 +7,12 @@
         },
         "perishable": {
           "time": 80
+        },
+        "edible": {
+          "nutrition": {
+            "food": 20,
+            "sanity": 10
+          }
         }
       }
   },
@@ -22,9 +28,18 @@
       "texture": "assets/images/items/axe.png",
       "components": {
         "equippable": {
-          "slots": [
-            "right_hand"
-          ]
+          "tool_name": "axe",
+          "slots": ["right_hand"]
+        },
+        "duration": {}
+      }
+  },
+  "sword": {
+      "texture": "assets/images/items/sword.png",
+      "components": {
+        "equippable": {
+          "tool_name": "sword",
+          "slots": ["right_hand"]
         },
         "duration": {}
       }
