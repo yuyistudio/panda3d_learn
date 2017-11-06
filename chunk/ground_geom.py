@@ -58,7 +58,7 @@ class GroundGeomUtil(object):
         if self._texture_config:
             texture_file = self._texture_config['texture_file']
             tex = G.loader.loadTexture(texture_file)
-            tex.set_magfilter(Texture.FT_nearest)
+            tex.set_magfilter(Texture.FT_linear_mipmap_linear)
             plane_np.set_texture(tex)
         return plane_np, {
             'tiles'  : storage_data,

@@ -398,6 +398,7 @@ class ObjGroundItem(BaseComponent):
     def on_start(self):
         com_model = self.get_entity().get_component(ObjModel)
         self._model = com_model.get_models()[0]
+        self._model.set_shader(G.res_mgr.get_ground_item_shader())
 
     def set_item(self, item):
         self._item = item
@@ -407,10 +408,10 @@ class ObjGroundItem(BaseComponent):
         self._model.setTransparency(1)
         self._model.set_texture(tex)
         self._tween_animation = tween.Tween(loop_type=tween.LoopType.PingPong,
-                                            duration=random.random() * .3 + 0.2,
+                                            duration=1.2,
                                             ease_type=tween.EaseType.easeInOutCubic,
                                             to_value=0,
-                                            from_value=random.random() * .2 + 0.3,
+                                            from_value=0.4,
                                             on_update=self._on_pos_update,
                                             )
         self._timer_auto_remove = tween.Tween(duration=240 + random.random() * 3, on_complete=self._on_timeout)

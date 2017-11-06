@@ -5,17 +5,16 @@ __author__ = 'Leon'
 from variable.global_vars import G
 from util import log, random_util
 from hero import create
-from entity_system.base_components import ObjGroundItem
+from entity_system.base_components import ObjGroundItem, ObjAnimator
 from chunk import chunk_manager, test_map_generator
 from craft_system import craft_manager
 from objects import ground, lights, box
-from panda3d.core import Vec3
+from panda3d.core import Vec3, AntialiasAttrib
 from inventory_system.inventory_manager import InventoryManager
 import json
-from util import fog
+from util import fog, debug
 import random
 from hero.tool import HeroEquipmentModels
-
 
 class GameManager(object):
     chunk_tile_size = 2
@@ -26,19 +25,17 @@ class GameManager(object):
         self.hero = None
         self.equipment_models = None
 
-
         # 雾效
         f = .7
         self.fog = fog.LinearFog(f, f, f, 70, 140)
-        G.accept('f', self.fog.switch)
+        debug.add_debug_key('f', self.fog.switch)
 
         # 背包系统
         self.inventory = InventoryManager()
         def add_apples():
             self.give_hero_item_by_name('axe', 2)
             self.give_hero_item_by_name('sword', 2)
-
-        G.accept('c', add_apples)
+        debug.add_debug_key('c', add_apples)
 
         # 制造系统
         log.process('creating craft manager')
@@ -197,7 +194,20 @@ class GameManager(object):
             assert self.hero
             G.operation.set_target(self.hero)
 
+        # 换装
         self.equipment_models = HeroEquipmentModels(self.hero)
+
+        # 英雄
+        debug.add_debug_key('j', self.enable2)
+        debug.add_debug_key('k', self.dis2)
+
+    def enable2(self):
+        model = self.hero.get_component(ObjAnimator).get_actor_np()
+        model.setAntialias(AntialiasAttrib.MMultisample, 1)
+
+    def dis2(self):
+        model = self.hero.get_component(ObjAnimator).get_actor_np()
+        model.setAntialias(AntialiasAttrib.MPoint, 1)
 
     def save_scene(self):
         self.inventory.on_save(self.slot)
