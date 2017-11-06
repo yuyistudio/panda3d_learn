@@ -241,7 +241,7 @@ class ChunkManager(object):
                     blocked_tiles.add((tile_r, tile_c))
         if not blocked_tiles:
             return None
-        body = BulletRigidBodyNode('physical_box_shapes')
+        body = BulletRigidBodyNode('chunk_collider')
         body.setMass(0)
         body.set_static(True)
         body.setIntoCollideMask(gconf.BIT_MASK_BLOCKED)

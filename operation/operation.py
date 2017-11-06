@@ -6,6 +6,7 @@ from variable.global_vars import G
 from util import keyboard
 from entity_system.base_components import ObjHeroController
 from inventory_system.common.components import ItemTool
+import placement_manager
 
 
 class GroundEntity(object):
@@ -46,6 +47,7 @@ class Operation(object):
     OP_xxx 表示一个接受玩家输入的操作
     """
     def __init__(self, op_target):
+        self._placement_mgr = placement_manager.PlacementManager()
         self._ground_entity = GroundEntity()
         self.target_ref = None
         self.controller = None
@@ -77,6 +79,12 @@ class Operation(object):
             },
             "distance"    : 0.1
         })
+
+    def _enable(self):
+        self._placement_mgr.enable("assets/blender/hero.egg", .4)
+
+    def _disable(self):
+        self._placement_mgr.disable()
 
     def _on_hold_done(self):
         self._hold_to_move = False
@@ -158,6 +166,10 @@ class Operation(object):
                 G.gui_mgr.get_mouse_gui().set_object_info(ent.get_name())
         else:
             G.gui_mgr.get_mouse_gui().set_object_info("")
+
+        # placement
+        self._placement_mgr.on_update(self.mouse_pos_on_ground)
+        self._placement_mgr.is_placeable()
 
     def get_action_tool(self):
         tool = G.game_mgr.inventory.get_action_tool()

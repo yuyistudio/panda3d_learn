@@ -1,0 +1,7 @@
+{
+  "tile_names": [
+    ["tile1", "rock1", "plate", "", "", "", "grass1", ""],
+    ["cobble", "rock2", "tile2", "", "", "", "grass2", ""],
+    ["wooden", "", "", "floor1", "floor3", "floor2", "barren", "side"]
+  ]
+}

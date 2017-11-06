@@ -8,11 +8,14 @@
 from variable.global_vars import G
 from util import storage
 from panda3d.core import Texture
+from panda3d.core import NodePath
 import os
+from panda3d.core import Shader
 
 
 class ResourceManager(object):
     def __init__(self):
+        self._ground_item_shader = None
         self._models = {}
         self._textures = {}
         self._scenes = storage.load_json_file('assets/json/scenes.json')
@@ -30,11 +33,22 @@ class ResourceManager(object):
             used_texture.set_magfilter(Texture.FT_nearest)
             self._item_textures[full_path] = used_texture
 
+    def get_ground_item_shader(self):
+        if not self._ground_item_shader:
+            self._ground_item_shader = Shader.load(
+                Shader.SL_GLSL,
+                vertex="assets/shaders/common.vert",
+                fragment="assets/shaders/ground_item.frag",
+                )
+            assert self._ground_item_shader
+        return self._ground_item_shader
+
     def get_static_model(self, filepath):
         model = self._models.get(filepath)
         if not model:
             model = G.loader.loadModel(filepath)
-        return model
+        #return model
+        return NodePath(model.node())
 
     def get_texture(self, filepath):
         texture = self._textures.get(filepath)

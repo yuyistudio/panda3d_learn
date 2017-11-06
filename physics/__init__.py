@@ -34,6 +34,9 @@ class PhysicsWorld(object):
             debugNp = G.render.attachNewNode(debugNode)
             debugNp.show()
 
+    def get_world(self):
+        return self.world
+
     def remove_collider(self, physics_np):
         self.world.remove_rigid_body(physics_np.node())
 
@@ -79,7 +82,7 @@ class PhysicsWorld(object):
     def addBoxCollider(self, box_np, mass, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
         bbox = self.get_bounding_size(box_np, scale)
         shape = BulletBoxShape(bbox * .5)
-        body = BulletRigidBodyNode('physical_box_shapes')
+        body = BulletRigidBodyNode('xx_box_shapes')
         body.setMass(mass)
         body.addShape(shape, TransformState.makePos(Point3(0, 0, bbox[2] * .5)))
         body.set_static(True)
