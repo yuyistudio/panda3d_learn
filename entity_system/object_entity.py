@@ -40,9 +40,9 @@ class ObjectEntity(BaseEntity):
                 return action_type
         return False
 
-    def do_action(self, tool, key_type, mouse_entity):
+    def do_action(self, action_info, tool, key_type, mouse_entity):
         for com in self._components.itervalues():
-            if com.do_action(tool, key_type, mouse_entity):
+            if com.do_action(action_info, tool, key_type, mouse_entity):
                 return True
         return False
 

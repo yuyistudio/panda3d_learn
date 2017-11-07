@@ -1,0 +1,31 @@
+//Cg
+
+void vshader(
+    float4 vtx_position : POSITION,
+    float2 vtx_texcoord0 : TEXCOORD0,
+    out float4 l_position : POSITION,
+    out float2 l_texcoord0 : TEXCOORD0,
+    uniform float4 texpad_tex,
+    uniform float4x4 mat_modelproj)
+{
+    l_position=mul(mat_modelproj, vtx_position);
+    l_texcoord0 = vtx_position.xz * texpad_tex.xy + texpad_tex.xy;
+}
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+             uniform sampler2D k_tex : TEXUNIT0)
+{
+    float4 c1, c2, c3, c4, c;
+    float scale = 0.01;
+    c = tex2D(k_tex, l_texcoord0);
+    c1 = tex2D(k_tex, l_texcoord0 + float2(0, scale));
+    c2 = tex2D(k_tex, l_texcoord0 + float2(0, -scale));
+    c3 = tex2D(k_tex, l_texcoord0 + float2(-scale, 0));
+    c4 = tex2D(k_tex, l_texcoord0 + float2(scale, 0));
+    c = c * 0.6 + (c1 + c2 + c3 + c4) * 0.25 * 0.4;
+
+    // To have a useless filter that outputs the original view
+    // without changing anything, just use :
+    o_color  = c;
+}

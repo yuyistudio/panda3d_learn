@@ -232,7 +232,7 @@ class ActionHeroWork(BaseAction):
             if tool != buffered_work.get('tool'):
                 # 执行动作时，不能中途换工具的哦~
                 return FAIL
-            if entity.do_action(tool, 'left', G.game_mgr.get_mouse_item()):
+            if entity.do_action(buffered_work, tool, buffered_work['key'], G.game_mgr.get_mouse_item()):
                 tool.on_use(buffered_work['action_type'])
                 return SUCCESS
             else:

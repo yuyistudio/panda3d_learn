@@ -24,6 +24,7 @@ class Inventory(object):
     All actions with _inventory_data, should perform with Inventory.instance.
     """
     instance = None
+    on_mouse_changed = None
     _mouse_item = None
 
     def __init__(self, items_config):
@@ -130,8 +131,9 @@ class Inventory(object):
         self._bag_enabled = data['bag_enabled']
         mouse_item_data = data['mouse_item']
         if mouse_item_data:
-            Inventory._mouse_item = Inventory.create_item(mouse_item_data[0])
-            Inventory._mouse_item.on_load(mouse_item_data[1])
+            mouse_item = Inventory.create_item(mouse_item_data[0])
+            mouse_item.on_load(mouse_item_data[1])
+            Inventory.set_mouse_item(mouse_item)
 
     def open_box(self, box):
         assert not self._opened_box, "cannot open two boxes at the same time"
@@ -152,6 +154,8 @@ class Inventory(object):
 
     @staticmethod
     def set_mouse_item(item):
+        if Inventory.on_mouse_changed:
+            Inventory.on_mouse_changed(Inventory._mouse_item, item)
         Inventory._mouse_item = item
 
     def mouse_click_at_equipment(self, index):
@@ -188,14 +192,14 @@ class Inventory(object):
                 return
             elif res == consts.PUT_INTO_EMPTY\
                     or res == consts.PUT_MERGE_TOTALLY:
-                Inventory._mouse_item = None
+                Inventory.set_mouse_item(None)
             elif res == consts.PUT_SWITCH:
-                Inventory._mouse_item = bag.get_switched_item()
+                Inventory.set_mouse_item(bag.get_switched_item())
             elif res == consts.PUT_MERGE_PARTIALLY:
                 pass
         else:
             # No mosue item.
-            Inventory._mouse_item = bag.take_item_at(index)
+            Inventory.set_mouse_item(bag.take_item_at(index))
 
     @staticmethod
     def half_to_mouse(bag, index):
@@ -208,7 +212,7 @@ class Inventory(object):
         if not clicked_item:
             return False
         if not Inventory._mouse_item:
-            Inventory._mouse_item = bag.take_half(index)
+            Inventory.set_mouse_item(bag.take_half(index))
             return True
         if not Inventory._mouse_item.get_stackable() or Inventory._mouse_item.get_name() != clicked_item.get_name():
             return False
