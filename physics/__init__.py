@@ -40,7 +40,7 @@ class PhysicsWorld(object):
     def remove_collider(self, physics_np):
         self.world.remove_rigid_body(physics_np.node())
 
-    def get_bounding_size(self, np, scale=1):
+    def get_bounding_size(self, np, scale=1.):
         if not isinstance(scale, list):
             scale = [scale] * 3
         bb = np.getTightBounds()  # calulcate bounds before any rotation or scale
@@ -49,9 +49,14 @@ class PhysicsWorld(object):
                      abs(bb[0].getZ() - bb[1].getZ()) * scale[2]
         return Vec3(dx, dy, dz)
 
-    def get_cylinder_shape(self, box_np, scale=1.):
-        bbox = self.get_bounding_size(box_np, scale)
+    def get_cylinder_shape(self, node_path, scale=1.):
+        bbox = self.get_bounding_size(node_path, scale)
         shape = BulletCylinderShape(max(bbox[0], bbox[1]) * .5, bbox[2], Z_up)
+        return shape, bbox
+
+    def get_box_shape(self, node_path, scale=1.):
+        bbox = self.get_bounding_size(node_path, scale)
+        shape = BulletBoxShape(bbox * .5)
         return shape, bbox
 
     def get_static_body(self, name, bit_mask, mass):

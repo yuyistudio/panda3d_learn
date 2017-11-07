@@ -19,14 +19,16 @@ entity component
 1. allow_action(self, tool_component, key_type, mouse_entity)
 	1. 返回结果为False表示不进行动作
 	2. 返回dict为如下格式：
-	    1. action_type： component自己可以识别就行了
+	    1. action_type： 动作类型
 	    2. anim_name：必须是主角支持的动画名次
 	    3. target_entity entity
 	    4. key
 	    5. ctrl 是不是按下了ctrl
 	    6. min_dist 用于hero和target_entity的距离判定
 	    7. event_name 当anim_name的event_name事件发生时，调用 do_action()
-2. do_action(self, tool_component, key_type, mouse_entity)
+	    8. gap 执行动作时Hero距离target_entity的最小距离，不设置时使用默认值 object.radius + tool.gap + hero.radius。设置为-1表示直接执行动作，不考虑距离。
+	    99. 其他key可以自定义
+2. do_action(self, action_info, tool_component, key_type, mouse_entity)
 
 每个函数都拥有完备的信息，所以可以完整判断接下来的行为。
 

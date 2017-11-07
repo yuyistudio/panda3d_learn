@@ -15,11 +15,14 @@ import json
 from util import fog, debug
 import random
 from hero.tool import HeroEquipmentModels
+from direct.filter.CommonFilters import CommonFilters
+
 
 class GameManager(object):
     chunk_tile_size = 2
 
     def __init__(self):
+        self.filters = None
         self.scene = None
         self.map_generator = None
         self.hero = None
@@ -32,6 +35,8 @@ class GameManager(object):
 
         # 背包系统
         self.inventory = InventoryManager()
+        self.give_hero_item_by_name("sapling", 3)
+
         def add_apples():
             self.give_hero_item_by_name('axe', 2)
             self.give_hero_item_by_name('sword', 2)
@@ -197,6 +202,10 @@ class GameManager(object):
         # 换装
         self.equipment_models = HeroEquipmentModels(self.hero)
 
+        # shader
+        model = self.hero.get_component(ObjAnimator).get_actor_np()
+        model.set_shader(G.res_mgr.get_shader('hero'))
+
         # 英雄
         debug.add_debug_key('j', self.enable2)
         debug.add_debug_key('k', self.dis2)
@@ -204,10 +213,12 @@ class GameManager(object):
     def enable2(self):
         model = self.hero.get_component(ObjAnimator).get_actor_np()
         model.setAntialias(AntialiasAttrib.MMultisample, 1)
+        G.render.setAntialias(AntialiasAttrib.MMultisample, 1)
 
     def dis2(self):
         model = self.hero.get_component(ObjAnimator).get_actor_np()
         model.setAntialias(AntialiasAttrib.MPoint, 1)
+        G.render.setAntialias(AntialiasAttrib.MPoint, 1)
 
     def save_scene(self):
         self.inventory.on_save(self.slot)
@@ -217,7 +228,6 @@ class GameManager(object):
         self.slot.save()
 
     def on_update(self, dt):
-        # TODO remove it
         self.hero.on_update(dt)
         pos = G.operation.get_center_pos()
         G.dir_light.set_pos(pos)

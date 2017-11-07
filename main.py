@@ -3,7 +3,7 @@
 from panda3d.core import load_prc_file
 load_prc_file("./config.prc")
 from variable.global_vars import G
-from common import game_states, config_manager, spawner, resource_manager, context
+from common import game_states, config_manager, spawner, resource_manager, context, post_effects
 from assets.map_generators.perlin import PerlinMapGenerator
 import gui_system
 from hero import create
@@ -21,6 +21,11 @@ class Game(object):
         log.process('creating managers')
         G.storage_mgr = storage_manager.StorageManager()
         G.storage_mgr.load()
+
+        G.post_effects = None
+        def turn_on():
+            G.post_effects = post_effects.PostEffects()
+        G.accept('x', turn_on)
 
         G.res_mgr = resource_manager.ResourceManager()
         G.spawner = spawner.Spawner()
@@ -52,6 +57,8 @@ class Game(object):
         dt = G.taskMgr.globalClock.getDt()
         G.physics_world.on_update(dt)
         G.state_mgr.on_update(dt)
+        if G.post_effects:
+            G.post_effects.on_update(dt)
         return task.cont
 
 Game()

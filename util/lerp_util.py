@@ -54,6 +54,9 @@ class LerpVec3(object):
             self.pos = target
         self.target_pos = target
 
+    def get_target(self):
+        return self.target_pos
+
     def lerp(self, dt):
         if not self._initialized:
             return Vec3(0, 0, 0)

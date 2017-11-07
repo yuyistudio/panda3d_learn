@@ -229,3 +229,23 @@ class ItemTool(BaseItemComponent):
 
     def on_load(self, data):
         self._duration = data['duration']
+
+
+class ItemPlaceable(BaseItemComponent):
+    name = 'placeable'
+
+    def __init__(self, config):
+        BaseItemComponent.__init__(self)
+        self._target_name = config['target_name']
+        self._preview_model = config['preview_model']
+        self._scale = config.get('collider_size', 1.)  # scalar or list of three scalar
+        self._overwrite_data = config.get('overwrite_data')
+        self._shape = config.get('collider_shape', 'box')
+
+    def get_placement_config(self):
+        return self._preview_model, self._shape, self._scale
+
+    def get_gen_config(self):
+        return self._target_name, self._overwrite_data
+
+

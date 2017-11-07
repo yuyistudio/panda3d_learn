@@ -110,7 +110,7 @@
                 "key": "left"
             },
             "loot": {
-                "loots": [["apple", 3], ["log", 3]]
+                "loots": [["apple", 3], ["log", 3], ["sapling", 2]]
             },
             "model": {
                 "static": true,

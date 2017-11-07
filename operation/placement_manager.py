@@ -10,6 +10,9 @@ from panda3d.core import Shader, TransformState, Vec3
 
 
 class PlacementManager(object):
+    COLLIDER_SHAPE_CYLINDER = 'cylinder'
+    COLLIDER_SHAPE_BOX = 'box'
+
     def __init__(self):
         alpha = 0.8
         self._green_color = (0, 1, 0, alpha)
@@ -18,25 +21,31 @@ class PlacementManager(object):
         self._collider = None
         self._ghost_np = None
         self._gap = 0.5
+        self._pos = None
         self._shader = Shader.load(Shader.SL_GLSL,
                                    vertex="assets/shaders/common.vert",
                                    fragment="assets/shaders/placement.frag",
                                    )
         assert self._shader
 
-    def enable(self, static_model_path, scale, gap=0.5):
+    def enable(self, static_model_path, scale, gap=0.5, shape=COLLIDER_SHAPE_CYLINDER):
         """
         :param static_model_path: 用于预览的模型
         :param radius: 用于进行碰撞检测的Cylinder半径
         :return: Nothing
         """
-        assert not self._model, "cannot call enable() twice before having called disable()"
+        if self._model:
+            return
+        # assert not self._model, "cannot call enable() twice before having called disable()"
         self._gap = gap
         self._model = G.res_mgr.get_static_model(static_model_path)
         print self._model.set_shader(self._shader)
         assert self._model, static_model_path
 
-        shape, _ = G.physics_world.get_cylinder_shape(self._model, scale)
+        if shape == self.COLLIDER_SHAPE_BOX:
+            shape, _ = G.physics_world.get_box_shape(self._model, scale)
+        else:
+            shape, _ = G.physics_world.get_cylinder_shape(self._model, scale)
         ghost = BulletGhostNode('placement')
         ghost.add_shape(shape, TransformState.makePos(Vec3(0, 0, .5)))
         ghost.set_into_collide_mask(config.BIT_MASK_PLACEMENT)
@@ -91,5 +100,8 @@ class PlacementManager(object):
                        pos.get_y() - pos.get_y() % self._gap,
                        0,
                        )
+            self._pos = pos
             self._ghost_np.set_pos(pos)
 
+    def get_pos(self):
+        return self._pos

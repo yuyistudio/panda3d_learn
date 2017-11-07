@@ -5,7 +5,7 @@ from util import trigger, log, freq
 from variable.global_vars import G
 from util import keyboard
 from entity_system.base_components import ObjHeroController
-from inventory_system.common.components import ItemTool
+from inventory_system.common.components import *
 import placement_manager
 
 
@@ -27,18 +27,42 @@ class GroundEntity(object):
             if key_type == 'left':
                 return {'action_type': 'throw_item_at', 'anim_name': 'pickup', 'event_name': 'pickup'}
             else:
+                if mouse_entity and G.operation.placement_mgr.is_placeable():
+                    return {'action_type': 'place', 'anim_name': 'craft',
+                            'pos': G.operation.placement_mgr.get_pos(),
+                    }
                 return {'action_type': 'trow_item_now', 'anim_name': 'pickup', 'event_name': 'pickup'}
+        log.debug("invalid action: tool[%s] key[%s] mouse[%s]", tool, key_type, mouse_entity)
         return False
 
     def get_radius(self):
         return 0.5
 
-    def do_action(self, tool, key_type, mouse_entity):
-        if mouse_entity:
-            if key_type == 'left':
+    def do_action(self, action_info, tool, key_type, mouse_entity):
+        action_type = action_info['action_type']
+        if action_type == 'throw_item_at':
+            if mouse_entity:
                 G.game_mgr.put_mouse_item_on_ground(self._pos)
+                return True
             else:
-                log.debug("throw item now!")
+                return False
+        if action_type == 'place':
+            if mouse_entity:
+                # 放置操作
+                placeable = mouse_entity.get_component(ItemPlaceable)
+                assert placeable
+                name, data = placeable.get_gen_config()
+                if not data:
+                    data = {}
+                data['name'] = name
+                pos = action_info['pos']
+                assert pos
+                G.game_mgr.chunk_mgr.spawn_with_data(pos.get_x(), pos.get_y(), data)
+                return True
+            return False
+        if action_type == 'throw_item_now':
+            log.debug("throw item now!")
+            return True
 
 
 class Operation(object):
@@ -47,7 +71,7 @@ class Operation(object):
     OP_xxx 表示一个接受玩家输入的操作
     """
     def __init__(self, op_target):
-        self._placement_mgr = placement_manager.PlacementManager()
+        self.placement_mgr = placement_manager.PlacementManager()
         self._ground_entity = GroundEntity()
         self.target_ref = None
         self.controller = None
@@ -63,7 +87,8 @@ class Operation(object):
         )
         self._right_key = keyboard.KeyStatus(
             'mouse3',
-            self.OP_right_mouse_click, None, None
+            self.OP_right_mouse_click, None, None,
+            click_max_duration=1,
         )
 
         self._enabled = False
@@ -81,13 +106,16 @@ class Operation(object):
         })
 
     def _enable(self):
-        self._placement_mgr.enable("assets/blender/hero.egg", .4)
+        self.placement_mgr.enable("assets/blender/hero.egg", .4)
 
     def _disable(self):
-        self._placement_mgr.disable()
+        self.placement_mgr.disable()
 
     def _on_hold_done(self):
         self._hold_to_move = False
+
+    def get_mouse_position(self):
+        return self.mouse_pos_on_ground
 
     def set_enabled(self, enabled):
         if enabled:
@@ -168,8 +196,8 @@ class Operation(object):
             G.gui_mgr.get_mouse_gui().set_object_info("")
 
         # placement
-        self._placement_mgr.on_update(self.mouse_pos_on_ground)
-        self._placement_mgr.is_placeable()
+        self.placement_mgr.on_update(self.mouse_pos_on_ground)
+        self.placement_mgr.is_placeable()
 
     def get_action_tool(self):
         tool = G.game_mgr.inventory.get_action_tool()
@@ -192,7 +220,11 @@ class Operation(object):
 
         # 远程武器应当将tool的distance设置得比较大。
         # 这样所有的action都可以抽象为 行走+动作 了。
-        gap = self.target_ref().get_radius() + entity.get_radius() + action_tool.get_distance()
+        gap = action_info.get('gap')
+        if not gap:
+            gap = self.target_ref().get_radius() + entity.get_radius() + action_tool.get_distance()
+        elif gap < 0:
+            gap = 9999
         self.controller.set_context('move_min_dist', gap)
         self.controller.set_context('target_pos', entity.get_pos())
         self.controller.start_move_action()

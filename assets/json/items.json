@@ -24,6 +24,20 @@
         }
       }
   },
+  "sapling": {
+      "texture": "assets/images/items/sapling.png",
+      "components": {
+        "stackable": {
+          "max_count": 10
+        },
+        "placeable": {
+          "target_name": "tree",
+          "preview_model": "assets/blender/tree.egg",
+          "collider_size": 0.5,
+          "collider_shape": "box"
+        }
+      }
+  },
   "axe": {
       "texture": "assets/images/items/axe.png",
       "components": {

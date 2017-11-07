@@ -7,7 +7,7 @@ from inventory_system.common import consts
 from variable.global_vars import G
 from util import log, keyboard
 from collections import namedtuple
-from inventory_system.common.components import ItemEquippable
+from inventory_system.common.components import ItemEquippable, ItemPlaceable
 
 
 ItemData = namedtuple('ItemData', ['item', 'bag', 'is_equipment'])
@@ -20,9 +20,20 @@ class InventoryManager(object):
     """
     def __init__(self):
         self._inventory_data = Inventory(G.res_mgr.get_item_config())
+        Inventory.on_mouse_changed = self._on_mouse_changed
         G.gui_mgr.set_inventory_cb(self._on_item_clicked, self._on_item_hover)
         self.refresh_mouse()
         self.refresh_inventory()
+
+    def _on_mouse_changed(self, old_item, new_item):
+        if new_item:
+            placeable = new_item.get_component(ItemPlaceable)
+            if placeable:
+                model_path, shape, scale = placeable.get_placement_config()
+                G.operation.placement_mgr.enable(model_path, scale, shape=shape)
+                return
+        G.operation.placement_mgr.disable()
+
 
     def quick_equip(self, bag, idx):
         res = self._inventory_data.quick_equip(bag, idx)

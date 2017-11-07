@@ -180,6 +180,9 @@ class ChunkManager(object):
         chunk = self._chunks.get((r, c))
         assert chunk, (r, c, chunk, entity, entity.get_name())
         chunk.remove_entity(entity)
+        self._update_chunk_static_models(chunk)
+
+    def _update_chunk_static_models(self, chunk):
         chunk.get_flatten_fn()()
 
     def spawn_to_exist_chunk(self, x, y, config):
@@ -266,6 +269,16 @@ class ChunkManager(object):
                              half_tile_size)
                 body.addShape(shape, TransformState.makePos(pos))
         return body
+
+    def spawn_with_data(self, x, y, data):
+        new_obj = self._spawner.spawn_from_storage(data)
+        assert new_obj
+        new_obj.set_pos(Vec3(x, y, 0))
+        r, c = self.xy2rc(x, y)
+        chunk = self._chunks[(r, c)]
+        assert chunk, 'cannot spawn outside of the view area (%s,%s)' % (x, y)
+        chunk.add_object(new_obj)
+        self._update_chunk_static_models(chunk)
 
     def spawn_object(self, name, x, y):
         new_obj = self._spawner.spawn_default(name, x, y)

@@ -86,7 +86,7 @@ class BaseComponent(object):
         """
         return None
 
-    def do_action(self, tool, key_type, mouse_entity):
+    def do_action(self, action_info, tool, key_type, mouse_entity):
         """
         返回是否执行成功
         :param tool:
@@ -102,3 +102,10 @@ class BaseComponent(object):
         :return:
         """
         return []
+
+    def get_placement_data(self):
+        """
+        获取需要在Object和Item之间同步的数据。
+        :return:
+        """
+        pass

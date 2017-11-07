@@ -319,6 +319,8 @@ class ObjDestroyable(BaseComponent):
     def allow_action(self, tool, key_type, mouse_entity):
         if not tool:
             return False
+        if key_type != 'left':
+            return False
         action_types = tool.get_action_types()
         best_action_type, max_duration = self._get_best_action(action_types)
         result = {
@@ -343,7 +345,7 @@ class ObjDestroyable(BaseComponent):
                     best_action_type = action_type
         return best_action_type, max_duration
 
-    def do_action(self, tool, key_type, mouse_entity):
+    def do_action(self, action_info, tool, key_type, mouse_entity):
         if not self.allow_action(tool, key_type, mouse_entity):
             return False
 
@@ -398,7 +400,7 @@ class ObjGroundItem(BaseComponent):
     def on_start(self):
         com_model = self.get_entity().get_component(ObjModel)
         self._model = com_model.get_models()[0]
-        self._model.set_shader(G.res_mgr.get_ground_item_shader())
+        self._model.set_shader(G.res_mgr.get_shader('ground_item'))
 
     def set_item(self, item):
         self._item = item

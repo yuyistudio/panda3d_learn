@@ -15,7 +15,6 @@ from panda3d.core import Shader
 
 class ResourceManager(object):
     def __init__(self):
-        self._ground_item_shader = None
         self._models = {}
         self._textures = {}
         self._scenes = storage.load_json_file('assets/json/scenes.json')
@@ -33,15 +32,20 @@ class ResourceManager(object):
             used_texture.set_magfilter(Texture.FT_nearest)
             self._item_textures[full_path] = used_texture
 
-    def get_ground_item_shader(self):
-        if not self._ground_item_shader:
-            self._ground_item_shader = Shader.load(
-                Shader.SL_GLSL,
-                vertex="assets/shaders/common.vert",
-                fragment="assets/shaders/ground_item.frag",
-                )
-            assert self._ground_item_shader
-        return self._ground_item_shader
+        self._shaders = dict()
+        self._shaders['ground_item'] = Shader.load(
+            Shader.SL_GLSL,
+            vertex="assets/shaders/common.vert",
+            fragment="assets/shaders/ground_item.frag",
+        )
+        self._shaders['hero'] = Shader.load(
+            Shader.SL_GLSL,
+            vertex="assets/shaders/common.vert",
+            fragment="assets/shaders/hero.frag",
+        )
+
+    def get_shader(self, shader_name):
+        return self._shaders.get(shader_name)
 
     def get_static_model(self, filepath):
         model = self._models.get(filepath)

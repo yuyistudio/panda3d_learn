@@ -22,10 +22,11 @@ class BaseEntity(object):
     def __str__(self):
         return "[Entity:%s]" % self.get_name()
 
-    def __init__(self, name, overwrite_config=dict(), entity_type=ENTITY_TYPE_OBJECT):
+    def __init__(self, name, overwrite_config=dict(), entity_type=ENTITY_TYPE_OBJECT, placement_data=None):
         assert isinstance(name, basestring)
         self._name = name
         self._entity_type = entity_type
+        self.placement_data = placement_data  # 各种com在on_start的时候，获取该数据。
 
         default_config = self._get_config().get(self._name, BaseEntity.CONFIG_NOT_FOUND_FLAG)
         if default_config == BaseEntity.CONFIG_NOT_FOUND_FLAG:
@@ -50,6 +51,19 @@ class BaseEntity(object):
             if com.is_update_overwrite():
                 self._updating_componets.append(com)
             com.on_start()
+
+    def get_placement_data(self):
+        """
+        在object和item转换的时候，交换数据。
+        例如object转Item时，调用 Object.get_placement_data，数据给新生成的 item 来使用。
+        :return:
+        """
+        data = {}
+        for com in self._components.itervalues():
+            com_data = com.get_placement_data()
+            if com_data:
+                data[com.name] = com_data
+        return data
 
     def _get_config(self):
         return self._item_config if self._entity_type == ENTITY_TYPE_ITEM else self._object_config

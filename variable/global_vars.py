@@ -10,6 +10,15 @@ class GlobalVariable(ShowBase):
     """
     def __init__(self):
         ShowBase.__init__(self)
+
+        '''
+        import sys
+        sys.path.insert(0, './render_pipeline')
+
+        from render_pipeline.rpcore import RenderPipeline
+        self.render_pipeline = RenderPipeline()
+        self.render_pipeline.create(self)
+        '''
         self.disableMouse()
         # self.render.setAntialias(AntialiasAttrib.MMultisample, 1)
         self.debug = True
