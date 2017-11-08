@@ -93,6 +93,7 @@ class Operation(object):
 
         self._enabled = False
         self._hold_to_move = False
+        self._hold_to_work = False
         G.taskMgr.add(self.mouse_pick_task, "mouse_pick")
         G.accept('space', self.OP_craft)
 
@@ -113,6 +114,7 @@ class Operation(object):
 
     def _on_hold_done(self):
         self._hold_to_move = False
+        self._hold_to_work = False
 
     def get_mouse_position(self):
         return self.mouse_pos_on_ground
@@ -261,9 +263,11 @@ class Operation(object):
 
         if not self._hold_to_move:
             if self._click_on_object('left'):
+                self._hold_to_work = True
                 return
-        self._hold_to_move = True
-        self._move_to_mouse('left')
+        if not self._hold_to_work:
+            self._hold_to_move = True
+            self._move_to_mouse('left')
 
     def _move_to_mouse(self, key):
         if key == 'left':
@@ -278,6 +282,8 @@ class Operation(object):
         """
         if self._hit_obj_ref:
             obj = self._hit_obj_ref()
+            if obj.is_destroyed():
+                return
         else:
             self._ground_entity.set_pos(self.mouse_pos_on_ground)
             obj = self._ground_entity

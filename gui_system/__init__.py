@@ -63,7 +63,8 @@ class GUIManager(object):
             "exit",
         ],
             self._menu_click_handler,
-            item_width=1.1,
+            item_width=1.2,
+            item_height=.4,
             events=[
                 "game_menu.continue",
                 "game_menu.save",
@@ -72,14 +73,15 @@ class GUIManager(object):
 
     def create_main_menu(self):
         self._main_menu = centermenu.CenterMenu([
-            "continue",
+            "继续",
             "new game",
             "settings",
             "credits",
             "exit",
         ],
             self._menu_click_handler,
-            item_width=1.1,
+            item_width=1.2,
+            item_height=.4,
             events=[
                 "main_menu.continue",
                 "main_menu.new",

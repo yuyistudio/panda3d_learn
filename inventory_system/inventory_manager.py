@@ -69,7 +69,7 @@ class InventoryManager(object):
             return
         mouse = G.gui_mgr.get_mouse_gui()
         if is_hover:
-            mouse.set_item_text("item %s" % item.get_name())
+            mouse.set_item_text("item 物品 %s" % item.get_name())
         else:
             mouse.set_item_text('')
 

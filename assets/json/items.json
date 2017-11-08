@@ -46,9 +46,9 @@
           "slots": ["right_hand"]
         },
         "tool": {
-          "action_types": {"cut": {"duration": 4}},
+          "action_types": {"cut": {"duration": 6}},
           "distance": 0.5,
-          "use_times": 3
+          "use_times": 30
         }
       }
   },

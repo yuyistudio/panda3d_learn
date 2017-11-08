@@ -29,7 +29,8 @@ class ResourceManager(object):
             full_path = os.path.join(folder, filename)
             full_path = full_path.replace('\\', '/')
             used_texture = G.loader.loadTexture(full_path)
-            used_texture.set_magfilter(Texture.FT_nearest)
+            used_texture.set_magfilter(Texture.FT_linear)
+            used_texture.set_minfilter(Texture.FT_linear)
             self._item_textures[full_path] = used_texture
 
         self._shaders = dict()
@@ -44,6 +45,21 @@ class ResourceManager(object):
             fragment="assets/shaders/hero.frag",
         )
 
+        self.fonts = {}
+        font = G.loader.loadFont('assets/fonts/方正黑体简体.TTF')
+        font.setPageSize(512, 512)
+        font.setPixelsPerUnit(32)
+        font.setPointSize(12)
+        self.fonts['default'] = font
+        font = G.loader.loadFont('assets/fonts/Minecraft.ttf')
+        font.setPageSize(512, 512)
+        font.setPixelsPerUnit(32)
+        font.setPointSize(12)
+        self.fonts['digital'] = font
+
+    def get_font(self, name):
+        return self.fonts[name]
+
     def get_shader(self, shader_name):
         return self._shaders.get(shader_name)
 
@@ -51,7 +67,6 @@ class ResourceManager(object):
         model = self._models.get(filepath)
         if not model:
             model = G.loader.loadModel(filepath)
-        #return model
         return NodePath(model.node())
 
     def get_texture(self, filepath):

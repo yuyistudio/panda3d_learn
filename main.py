@@ -1,5 +1,8 @@
 #encoding: utf8
 
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 from panda3d.core import load_prc_file
 load_prc_file("./config.prc")
 from variable.global_vars import G
@@ -17,7 +20,8 @@ from direct.filter.CommonFilters import CommonFilters
 
 class Game(object):
     def __init__(self):
-        log.process('creating game instance')
+        log.process('setting font')
+
         log.process('creating managers')
         G.storage_mgr = storage_manager.StorageManager()
         G.storage_mgr.load()
