@@ -29,8 +29,8 @@ class InventoryManager(object):
         if new_item:
             placeable = new_item.get_component(ItemPlaceable)
             if placeable:
-                model_path, shape, scale = placeable.get_placement_config()
-                G.operation.placement_mgr.enable(model_path, scale, shape=shape)
+                model_path, shape, scale, gap = placeable.get_placement_config()
+                G.operation.placement_mgr.enable(model_path, scale, shape=shape, gap=gap)
                 return
         G.operation.placement_mgr.disable()
 

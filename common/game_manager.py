@@ -38,8 +38,9 @@ class GameManager(object):
         self.give_hero_item_by_name("sapling", 3)
 
         def add_apples():
-            self.give_hero_item_by_name('axe', 2)
-            self.give_hero_item_by_name('sword', 2)
+            self.give_hero_item_by_name('axe', 1)
+            self.give_hero_item_by_name('sword', 1)
+            self.give_hero_item_by_name('box', 1)
         debug.add_debug_key('c', add_apples)
 
         # 制造系统

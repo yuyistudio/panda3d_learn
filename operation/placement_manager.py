@@ -28,7 +28,7 @@ class PlacementManager(object):
                                    )
         assert self._shader
 
-    def enable(self, static_model_path, scale, gap=0.5, shape=COLLIDER_SHAPE_CYLINDER):
+    def enable(self, static_model_path, scale, gap='normal', shape=COLLIDER_SHAPE_CYLINDER):
         """
         :param static_model_path: 用于预览的模型
         :param radius: 用于进行碰撞检测的Cylinder半径
@@ -37,7 +37,17 @@ class PlacementManager(object):
         if self._model:
             return
         # assert not self._model, "cannot call enable() twice before having called disable()"
-        self._gap = gap
+        if gap == 'normal':
+            self._gap = 0.25
+            self._gap_base = 0
+        elif gap == 'cell':
+            self._gap = 2
+            self._gap_base = 1.0
+        elif gap == 'half_cell':
+            self._gpa = 1
+            self._gap_base = 0.5
+        else:
+            assert False, 'unknown gap: %s, expect [normal|cell|half_cell]' % gap
         self._model = G.res_mgr.get_static_model(static_model_path)
         print self._model.set_shader(self._shader)
         assert self._model, static_model_path
@@ -96,8 +106,8 @@ class PlacementManager(object):
         :return:
         """
         if self._ghost_np:
-            pos = Vec3(pos.get_x() - pos.get_x() % self._gap,
-                       pos.get_y() - pos.get_y() % self._gap,
+            pos = Vec3(pos.get_x() - pos.get_x() % self._gap + self._gap_base,
+                       pos.get_y() - pos.get_y() % self._gap + self._gap_base,
                        0,
                        )
             self._pos = pos

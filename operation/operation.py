@@ -106,12 +106,6 @@ class Operation(object):
             "distance"    : 0.1
         })
 
-    def _enable(self):
-        self.placement_mgr.enable("assets/blender/hero.egg", .4)
-
-    def _disable(self):
-        self.placement_mgr.disable()
-
     def _on_hold_done(self):
         self._hold_to_move = False
         self._hold_to_work = False
