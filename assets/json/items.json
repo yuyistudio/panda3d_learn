@@ -34,7 +34,20 @@
           "target_name": "tree",
           "preview_model": "assets/blender/tree.egg",
           "collider_size": 0.5,
-          "collider_shape": "box"
+          "collider_shape": "box",
+          "place_gap": "normal"
+        }
+      }
+  },
+  "box": {
+      "texture": "assets/images/items/box.png",
+      "components": {
+        "placeable": {
+          "target_name": "box",
+          "preview_model": "assets/blender/box.egg",
+          "collider_size": 0.5,
+          "collider_shape": "box",
+          "place_gap": "cell"
         }
       }
   },

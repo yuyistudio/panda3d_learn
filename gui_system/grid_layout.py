@@ -188,7 +188,7 @@ class InventoryLayout(GridLayout):
 
         # label
         count_label = DirectFrame(text="", frameColor=(0,0,0,0), text_align=TextNode.ABoxedLeft,
-                                  text_scale=0.07, text_fg=(.9,.9,.9,1), text_bg=(0,0,0,.3),
+                                  text_scale=0.055, text_fg=(.9,.9,.9,1), text_bg=(0,0,0,.3),
                                   text_font=self._digital_font,
                                   sortOrder=0)
         count_label.reparentTo(cell)

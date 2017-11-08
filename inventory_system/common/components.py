@@ -241,9 +241,10 @@ class ItemPlaceable(BaseItemComponent):
         self._scale = config.get('collider_size', 1.)  # scalar or list of three scalar
         self._overwrite_data = config.get('overwrite_data')
         self._shape = config.get('collider_shape', 'box')
+        self._gap = config.get('place_gap', 'normal')
 
     def get_placement_config(self):
-        return self._preview_model, self._shape, self._scale
+        return self._preview_model, self._shape, self._scale, self._gap
 
     def get_gen_config(self):
         return self._target_name, self._overwrite_data
