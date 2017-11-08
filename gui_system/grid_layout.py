@@ -20,6 +20,8 @@ class GridLayout(object):
                  alignment=ALIGNMENT_CENTER,
                  cell_width=0.2, cell_height=0.2,
                  margin=0.015, padding_horizontal=0.05, padding_vertical=0.1, extra_image=True):
+        self._font = G.res_mgr.get_font('default')
+        self._digital_font = G.res_mgr.get_font('digital')
         self._rows = rows
         self._cols = cols
         self._user_data = [None] * (self._rows * self._cols)
@@ -51,7 +53,8 @@ class GridLayout(object):
         self._container = DirectFrame(
             image=G.loader.loadTexture(bk_image),
             image_scale=(total_width/2.,0,total_height/2.),
-            frameColor=(0, 0, 0, 0),
+            image_color=(0, 0, 0, 0),
+            frameColor=(1, 0, 0, 0),
             frameSize=(-total_width/2, total_width/2, -total_height/2, total_height/2),
         )
         self._container.setTransparency(1)
@@ -74,6 +77,7 @@ class GridLayout(object):
 
         self._cell_texture = G.loader.loadTexture(cell_bk_image)
         self._cell_texture.set_magfilter(Texture.FT_nearest)
+        self._cell_texture.set_minfilter(Texture.FT_nearest)
         self._container.setPos(self._base_pos)
         self._cells = []
         self._cell_images = []
@@ -108,7 +112,9 @@ class GridLayout(object):
 
         # container apperance
         cell = DirectButton(image=self._cell_texture, relief=4, image_scale=self._cell_scale,
-                            borderWidth=(0.01, 0.01), frameColor=(0, 0, 0, 0.3))
+                            borderWidth=(0.01, 0.01), frameColor=(1, 0, 0, 0.0),
+                            sortOrder=1,
+                            )
         cell.setTransparency(1)
 
         # position & size
@@ -182,12 +188,15 @@ class InventoryLayout(GridLayout):
 
         # label
         count_label = DirectFrame(text="", frameColor=(0,0,0,0), text_align=TextNode.ABoxedLeft,
-                                  text_scale=0.1, text_fg=(.9,.9,.9,1))
+                                  text_scale=0.07, text_fg=(.9,.9,.9,1), text_bg=(0,0,0,.3),
+                                  text_font=self._digital_font,
+                                  sortOrder=0)
         count_label.reparentTo(cell)
         count_label.bind(DGG.B1PRESS, self._on_cell_clicked, [self._idx])
         count_label.bind(DGG.B2PRESS, self._on_cell_clicked, [self._idx])
         count_label.bind(DGG.B3PRESS, self._on_cell_clicked, [self._idx])
         count_label.ignore(DGG.B1PRESS)
+        count_label.setBin("gui-popup", 50)  # 真奇怪的设计。setOrder不起作用，但是这玩意竟然起作用。
 
         self._labels.append(count_label)
 
@@ -215,10 +224,13 @@ class MenuLayout(GridLayout):
         return cell, img
 
     def setItem(self, index, text, data=None):
-        self._cells[index]['text'] = text
-        self._cells[index]['text_scale'] = self._cell_h_scale
-        self._cells[index]['text_fg'] = (255, 255, 255, 255)
-        self._cells[index]['text_pos'] = (0, -0.03)
+        cell = self._cells[index]
+        cell['text'] = text
+        cell['sortOrder'] = 0
+        cell['text_font'] = self._font
+        cell['text_scale'] = self._cell_h_scale
+        cell['text_fg'] = (255, 255, 255, 255)
+        cell['text_pos'] = (0, -0.03)
         self._user_data[index] = data
 
 

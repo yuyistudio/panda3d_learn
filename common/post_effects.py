@@ -13,7 +13,7 @@ class PostEffects(object):
         tex = Texture()
         quad = manager.renderSceneInto(colortex=tex)
         quad.setShader(Shader.load("assets/shaders/post/post.sha"))
-        quad.setShaderInput("tex", tex)
+        quad.setShaderInput("color", tex)
         quad.setShaderInput("active", 2)
         self.quad = quad
         self.mgr = manager

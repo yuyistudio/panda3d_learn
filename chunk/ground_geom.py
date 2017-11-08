@@ -15,6 +15,9 @@ import copy
 
 DEFAULT_UV = (0, 0, 1., 1.)
 
+MIN_FT = Texture.FT_linear_mipmap_linear
+MAG_FT = Texture.FT_nearest
+
 
 class GroundGeomUtil(object):
     def __init__(self, tile_size, tile_count, map_generator, texture_config):
@@ -58,7 +61,8 @@ class GroundGeomUtil(object):
         if self._texture_config:
             texture_file = self._texture_config['texture_file']
             tex = G.loader.loadTexture(texture_file)
-            # tex.set_magfilter(Texture.FT_linear_mipmap_linear)
+            tex.set_magfilter(MAG_FT)
+            tex.set_minfilter(MIN_FT)
             plane_np.set_texture(tex)
         return plane_np, {
             'tiles'  : storage_data,
@@ -77,7 +81,8 @@ class GroundGeomUtil(object):
         texture_file = data['texture']
         if texture_file:
             tex = G.loader.loadTexture(texture_file)
-            # tex.set_magfilter(Texture.FT_nearest)
+            tex.set_magfilter(MAG_FT)
+            tex.set_minfilter(MIN_FT)
             tex.setWrapU(Texture.WM_repeat)
             tex.setWrapV(Texture.WM_repeat)
             plane_np.set_texture(tex)

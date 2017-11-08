@@ -25,6 +25,7 @@ class MouseGUI(object):
                                   suppressMouse=True,
                                   frameSize=(0.01, 0.01, 0.01, 0.01),
                                   sortOrder=10000,
+                                  text_font=G.res_mgr.get_font('default'),
                                   )
         self._label.setTransparency(1)
         self._label.reparentTo(self._mouse_gui_root)
