@@ -14,7 +14,7 @@ void vshader(float4 vtx_position : POSITION,
 {
   l_position = mul(mat_modelproj, vtx_position);
   l_texcoord = (vtx_position.xz * texpad_color.xy) + texpad_color.xy;
- 
+
   vec2 rcpFrame = vec2(1.0/rt_w, 1.0/rt_h);
   posPos.xy = l_texcoord.xy;
   posPos.zw = l_texcoord.xy - (rcpFrame * (0.5 + FXAA_SUBPIX_SHIFT));

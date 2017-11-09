@@ -9,18 +9,24 @@ import math
 
 class PostEffects(object):
     def __init__(self):
-        manager = FilterManager(G.win, G.cam)
+        self._manager = FilterManager(G.win, G.cam)
+        self._quads = []
+
         tex = Texture()
-        quad = manager.renderSceneInto(colortex=tex)
-        quad.setShader(Shader.load("assets/shaders/post/post.sha"))
+        quad = self._manager.renderSceneInto(colortex=tex)
+        quad.setShader(Shader.load("assets/shaders/post/fxaa.sha"))
         quad.setShaderInput("color", tex)
         quad.setShaderInput("active", 2)
-        self.quad = quad
-        self.mgr = manager
-        self.timer = 0
+        self._quads.append(quad)
+
+        return
+        tex = Texture()
+        quad = self._manager.renderSceneInto(colortex=tex)
+        quad.setShader(Shader.load("assets/shaders/post/mono.sha"))
+        quad.setShaderInput("tex", tex)
+        self._quads.append(quad)
 
     def on_update(self, dt):
-        self.timer += 1
-        self.quad.setShaderInput('value', self.timer)  #Vec2(1.0, 1.0))
+        pass
 
 

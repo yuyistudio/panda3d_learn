@@ -300,6 +300,7 @@ class Operation(object):
         if dx == 0 and dy == 0:
             self.controller.set_context('target_dir', None)
             return
+        dx, dy = G.camera_mgr.get_direction(dx, dy)
         self.controller.set_context('buffered_work', None)
         move_dir = Vec3(dx, dy, 0)
         self.controller.set_context('target_dir', move_dir)

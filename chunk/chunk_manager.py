@@ -102,7 +102,7 @@ class ChunkManager(object):
         """
         center_r, center_c = self.xy2rc(x, y)
         result = []
-        for dr in range(-1, 18):
+        for dr in range(-3, 4):
             for dc in range(-3, 4):
                 r, c = center_r + dr, center_c + dc
                 tx, ty = self.rc2xy(r, c)

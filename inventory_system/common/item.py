@@ -124,7 +124,7 @@ class Item(BaseEntity):
                 com2 = item2.get_component(component_type)
                 assert(com2)  # since they have the same name
                 merge_value2 = com2.get_merge_value()
-                # print component_type.__name__, merge_value1, factor1, merge_value2, factor2
+                # print component_type.__name__, merge_value1, factor_x, merge_value2, factor_y
                 com2.set_merge_value(merge_value1 * factor1 + merge_value2 * factor2)
         if stack1.get_count() == 0:
             return consts.PUT_MERGE_TOTALLY
