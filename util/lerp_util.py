@@ -23,6 +23,9 @@ class FloatLerp(object):
     def set_target(self, target_value):
         self.target_value = max(self.min_value, min(self.max_value, target_value))
 
+    def get_target(self):
+        return self.target_value
+
     def to_max(self):
         self.target_value = self.max_value
 
@@ -53,6 +56,10 @@ class LerpVec3(object):
             self._initialized = True
             self.pos = target
         self.target_pos = target
+
+    def set_pos(self, pos):
+        self.target_pos = pos
+        self.pos = pos
 
     def get_target(self):
         return self.target_pos
