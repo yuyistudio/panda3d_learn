@@ -57,7 +57,7 @@ class ChunkManager(object):
 
         from collections import Counter
         self._unload_counter = Counter()
-        self._counter_threshold = 0 if G.debug else 200
+        self._counter_threshold = 500 if G.debug else 200
 
     def __str__(self):
         items = []
@@ -178,9 +178,10 @@ class ChunkManager(object):
         pos = entity.get_pos()
         r, c = self.xy2rc(pos.get_x(), pos.get_y())
         chunk = self._chunks.get((r, c))
-        assert chunk, (r, c, chunk, entity, entity.get_name())
-        chunk.remove_entity(entity)
-        self._update_chunk_static_models(chunk)
+        # assert chunk, (r, c, chunk, entity, entity.get_name())
+        if chunk:
+            chunk.remove_entity(entity)
+            self._update_chunk_static_models(chunk)
 
     def _update_chunk_static_models(self, chunk):
         chunk.get_flatten_fn()()
@@ -217,9 +218,12 @@ class ChunkManager(object):
         def wrapper():
             chunk = None
             try:
-                assert not self._chunks.get(chunk_key)
+                chunk = self._chunks.get(chunk_key)
+                if chunk:
+                    return
                 chunk = self._load_chunk_real(r, c)
                 assert not self._chunks.get(chunk_key), '防止chunk._load_chunk_real()中不小心赋值'
+                time.sleep(0.05)
                 if chunk and not chunk.is_geom_flattened():
                     fn = chunk.get_flatten_fn()
                     if fn:
@@ -311,11 +315,13 @@ class ChunkManager(object):
                 ground_data = new_chunk.get_ground_data()
                 assert ground_data
                 ground_np = self._ground_geom_util.create_ground_from_data(r, c, ground_data)
+                time.sleep(0.05)
                 block_body = self._create_block_bodies(r, c)
                 new_chunk.set_ground_geom(ground_np, ground_data, block_body)
                 return new_chunk
 
         # 生成tile物体和地形
+        time.sleep(0.05)
         block_body = self._create_block_bodies(r, c)
         plane_np, tiles_data = self._ground_geom_util.new_ground_geom(r, c)
         new_chunk.set_ground_geom(plane_np, tiles_data, block_body)
@@ -325,6 +331,7 @@ class ChunkManager(object):
         br = r * self._chunk_tile_count
         bc = c * self._chunk_tile_count
         for ir in range(br, br + self._chunk_tile_count):
+            time.sleep(0.002)
             for ic in range(bc, bc + self._chunk_tile_count):
                 ginfo = self._generator.get(ir, ic)
                 if not ginfo:
@@ -369,10 +376,12 @@ class ChunkManager(object):
         cache_key, cache_value = self._cache.add(chunk_id, target_chunk)
         del self._chunks[chunk_id]
         del chunk_id  # 防止误用
+        time.sleep(0.05)
 
         # 删除过期的cache
         if cache_key:
             data = cache_value.on_save()
+            time.sleep(0.05)
             cache_value.destroy()
             if self._storage_mgr:
                 self._storage_mgr.set(str(cache_key), data)

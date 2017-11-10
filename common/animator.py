@@ -45,7 +45,9 @@ class Animator(object):
         self._actor_np = Actor.Actor(filepath, anim_mapping)
         for tex in self._actor_np.find_all_textures():
             tex.set_magfilter(Texture.FT_nearest)
-            tex.set_minfilter(Texture.FT_nearest)
+            tex.set_minfilter(Texture.FT_linear_mipmap_linear)
+            tex.setWrapU(Texture.WM_mirror)
+            tex.setWrapV(Texture.WM_mirror)
         for anim_name, anim_config in config.get('animations').iteritems():
             self._actor_np.setPlayRate(anim_config.get('rate', 1.), anim_name)
 

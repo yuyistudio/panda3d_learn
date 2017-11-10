@@ -49,8 +49,11 @@ class GamePlayState(BaseGameState):
 
         log.process("creating game manager")
         G.game_mgr = game_manager.GameManager()
+
+        log.process('creating camera manager')
         G.camera_mgr = camera.CameraManager()
 
+        log.process('starting operation')
         G.operation.set_enabled(True)
         G.accept("escape", self._handler_escape)
 

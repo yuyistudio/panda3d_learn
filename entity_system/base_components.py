@@ -75,7 +75,9 @@ class ObjModel(BaseComponent):
 
     def destroy(self):
         if self.physical_np:
-            G.physics_world.remove_collider(self.physical_np)
+            # 重复remove会有warning
+            if self.enabled:
+                G.physics_world.remove_collider(self.physical_np)
             self.physical_np.remove_node()
         if self.model_np:
             self.model_np.remove_node()
@@ -410,10 +412,10 @@ class ObjGroundItem(BaseComponent):
         self._model.setTransparency(1)
         self._model.set_texture(tex)
         self._tween_animation = tween.Tween(loop_type=tween.LoopType.PingPong,
-                                            duration=1.2,
+                                            duration=0.6,
                                             ease_type=tween.EaseType.easeInOutCubic,
                                             to_value=0,
-                                            from_value=0.4,
+                                            from_value=0.9,
                                             on_update=self._on_pos_update,
                                             )
         self._timer_auto_remove = tween.Tween(duration=240 + random.random() * 3, on_complete=self._on_timeout)

@@ -20,17 +20,14 @@ from direct.filter.CommonFilters import CommonFilters
 
 class Game(object):
     def __init__(self):
+        G.post_effects = post_effects.PostEffects()
+        G.post_effects.turn_on()
+
         log.process('setting font')
 
         log.process('creating managers')
         G.storage_mgr = storage_manager.StorageManager()
         G.storage_mgr.load()
-
-        G.post_effects = None
-        def turn_on():
-            G.post_effects = post_effects.PostEffects()
-        G.accept('x', turn_on)
-
         G.res_mgr = resource_manager.ResourceManager()
         G.spawner = spawner.Spawner()
 
@@ -61,8 +58,6 @@ class Game(object):
         dt = G.taskMgr.globalClock.getDt()
         G.physics_world.on_update(dt)
         G.state_mgr.on_update(dt)
-        if G.post_effects:
-            G.post_effects.on_update(dt)
         return task.cont
 
 Game()

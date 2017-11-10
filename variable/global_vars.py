@@ -20,8 +20,8 @@ class GlobalVariable(ShowBase):
         self.render_pipeline.create(self)
         '''
         self.disableMouse()
-        # self.render.setAntialias(AntialiasAttrib.MMultisample, 1)
-        self.debug = False
+        self.render.setAntialias(AntialiasAttrib.MMultisample, 1)
+        self.debug = True
 
     def schedule(self, fn, name="update"):
         def _wrapper_(task):
