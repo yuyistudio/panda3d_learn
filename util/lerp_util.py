@@ -3,7 +3,7 @@
 
 __author__ = 'Leon'
 from panda3d.core import Vec3
-
+import math
 
 class FloatLerp(object):
     def __init__(self, init_value, min_value, max_value, lerp_factor):
@@ -12,6 +12,9 @@ class FloatLerp(object):
         self.max_value = max_value
         self.lerp_factor = lerp_factor
         self.target_value = init_value
+
+    def get_gap(self):
+        return math.fabs(self.target_value - self.value)
 
     def change_target(self, target_value):
         self.target_value = max(self.min_value, min(self.max_value, self.target_value + target_value))

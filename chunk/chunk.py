@@ -197,7 +197,7 @@ class Chunk(object):
             tile.destroy()
         self._tiles = None
         for obj in self._frozen_objects:
-            obj.destroy(True)
+            obj.destroy(False)
         for item in self._ground_items:
             if not item.is_destroyed():
                 item.destroy()
@@ -259,6 +259,8 @@ class Chunk(object):
                 G.physics_world.add_body(self._block_body)
             if self._ground_geom:
                 self._ground_geom.show()
+            import time
+            time.sleep(0.002)
             if self._root_np:
                 self._root_np.show()
         else:

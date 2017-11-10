@@ -31,7 +31,7 @@ class GameManager(object):
         # 雾效
         f = .7
         self.fog = fog.LinearFog(f, f, f, 70, 140)
-        debug.add_debug_key('f', self.fog.switch)
+        #self.fog.switch()
 
         # 背包系统
         self.inventory = InventoryManager()
@@ -64,6 +64,7 @@ class GameManager(object):
 
         # 设置chunk manager的存档
         log.process('creating chunk manager')
+        assert G.loader
         self.chunk_mgr = chunk_manager.ChunkManager(
             texture_config=G.config_mgr.get_tile_config('default'),
             spawner=G.spawner,
@@ -71,8 +72,13 @@ class GameManager(object):
             storage_mgr=self.scene,
             chunk_title_count=10, chunk_tile_size=self.chunk_tile_size, chunk_count=36)
 
+        log.process('creating ground collider')
         self._ground = ground.create()  # TODO remove it
+
+        log.process('creating lights')
         lights.create()  # TODO remove it
+
+        log.process('game manager initialized!')
 
     def change_equipment_model(self, slot_name, equipment_name):
         self.equipment_models.change_model(slot_name, equipment_name)
@@ -206,20 +212,6 @@ class GameManager(object):
         # shader
         model = self.hero.get_component(ObjAnimator).get_actor_np()
         model.set_shader(G.res_mgr.get_shader('hero'))
-
-        # 英雄
-        debug.add_debug_key('j', self.enable2)
-        debug.add_debug_key('k', self.dis2)
-
-    def enable2(self):
-        model = self.hero.get_component(ObjAnimator).get_actor_np()
-        model.setAntialias(AntialiasAttrib.MMultisample, 1)
-        G.render.setAntialias(AntialiasAttrib.MMultisample, 1)
-
-    def dis2(self):
-        model = self.hero.get_component(ObjAnimator).get_actor_np()
-        model.setAntialias(AntialiasAttrib.MPoint, 1)
-        G.render.setAntialias(AntialiasAttrib.MPoint, 1)
 
     def save_scene(self):
         self.inventory.on_save(self.slot)

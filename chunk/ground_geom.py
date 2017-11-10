@@ -45,6 +45,12 @@ class GroundGeomUtil(object):
     def _storage_key(self, r, c):
         return '%d_%d' % (r, c)
 
+    def _setup_texture(self, tex):
+        tex.set_magfilter(MAG_FT)
+        tex.set_minfilter(MIN_FT)
+        tex.setWrapU(Texture.WM_mirror)
+        tex.setWrapV(Texture.WM_mirror)
+
     def new_ground_geom(self, r, c):
         storage_data = {}  # 存ground数据，放到chunk里面存折，后面载入的时候会用到.
         cache = {}
@@ -61,8 +67,7 @@ class GroundGeomUtil(object):
         if self._texture_config:
             texture_file = self._texture_config['texture_file']
             tex = G.loader.loadTexture(texture_file)
-            tex.set_magfilter(MAG_FT)
-            tex.set_minfilter(MIN_FT)
+            self._setup_texture(tex)
             plane_np.set_texture(tex)
         return plane_np, {
             'tiles'  : storage_data,
@@ -81,9 +86,6 @@ class GroundGeomUtil(object):
         texture_file = data['texture']
         if texture_file:
             tex = G.loader.loadTexture(texture_file)
-            tex.set_magfilter(MAG_FT)
-            tex.set_minfilter(MIN_FT)
-            tex.setWrapU(Texture.WM_repeat)
-            tex.setWrapV(Texture.WM_repeat)
+            self._setup_texture(tex)
             plane_np.set_texture(tex)
         return plane_np

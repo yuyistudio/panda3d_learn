@@ -17,3 +17,14 @@
 		* 必须显式删除注册的任务，否则 taskMgr 会持有一份classInstance的引用
 		* DirectObject的子类必须调用 ignoreAll()
 		* 使用 custom class 的 __del__ 方法来检测是否正确回收了内存。
+
+
+如何解决模型seam问题
+============
+
+1. 不是vertex未重合导致的。。
+2. pixel texture可能采样到附近未定义的像素上去了，所以增大texture可以缓解问题
+3. 设置texture wrap mode
+4. 设置texture filter type
+5. 使用anti-alias和fxaa
+
