@@ -97,7 +97,7 @@ class EquipmentSlots(object):
         equippable.on_equipped(slot_type)
 
     def _on_unequip_item(self, equip_item, slot_type):
-        if equip_item:
+        if equip_item and not equip_item.is_destroyed():
             equip_item.get_component(ItemEquippable).on_unequipped(slot_type)
 
     def _put_equip_at(self, index, item):

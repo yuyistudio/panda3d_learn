@@ -49,7 +49,8 @@ class PlacementManager(object):
         else:
             assert False, 'unknown gap: %s, expect [normal|cell|half_cell]' % gap
         self._model = G.res_mgr.get_static_model(static_model_path)
-        print self._model.set_shader(self._shader)
+        log.debug("placement model: %s", self._model)
+        self._model.set_shader(self._shader)
         assert self._model, static_model_path
 
         if shape == self.COLLIDER_SHAPE_BOX:

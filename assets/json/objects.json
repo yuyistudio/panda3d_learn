@@ -6,7 +6,7 @@
                 "iname": "主角"
             },
             "transform_controller": {
-                "speed": 13
+                "speed": 11
             },
             "hero_controller": {
             },
@@ -78,13 +78,21 @@
             "inspectable": {
                 "iname": "箱子"
             },
+            "destroyable": {
+                "types": {
+                    "pick": {"efficiency": 0.2},
+                    "cut": {"efficiency": 1}
+                },
+                "duration": 8,
+                "key": "left"
+            },
             "model": {
                 "static": true,
                 "model_file": "assets/blender/box.egg",
                 "physics": {
                     "shape": "box"
                 },
-                "scale": 0.9
+                "scale": 1.0
             }
         }
     },
@@ -97,7 +105,7 @@
         }
     },
     "tree": {
-        "radius": 0.3,
+        "radius": 0.5,
         "components": {
             "inspectable": {
                 "iname": "树木"
@@ -117,10 +125,10 @@
                 "static": true,
                 "model_file": "assets/blender/tree.egg",
                 "physics": {
-                    "shape": "box"
+                    "shape": "cylinder"
                 },
-                "scale": 3.7,
-                "collider_scale": [0.4, 0.4, 0.9]
+                "scale": [2.1, 2.1, 4.9],
+                "collider_scale": [0.8, 0.8, 1.0]
             }
         }
     },
@@ -133,7 +141,7 @@
                 "static": true,
                 "model_file": "assets/blender/twig.egg",
                 "physics": {
-                    "shape": "box"
+                    "shape": "cylinder"
                 },
                 "scale": 1.1,
                 "collider_scale": 1

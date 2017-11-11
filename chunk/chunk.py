@@ -260,7 +260,7 @@ class Chunk(object):
             if self._ground_geom:
                 self._ground_geom.show()
             import time
-            time.sleep(0.002)
+            time.sleep(0.001)
             if self._root_np:
                 self._root_np.show()
         else:

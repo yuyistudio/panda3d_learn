@@ -64,8 +64,9 @@ class ResourceManager(object):
         return self._shaders.get(shader_name)
 
     def get_static_model(self, filepath):
+        return G.loader.loadModel(filepath)
         model = self._models.get(filepath)
-        if not model:
+        if True or not model:
             model = G.loader.loadModel(filepath)
         return NodePath(model.node())
 

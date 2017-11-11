@@ -28,8 +28,8 @@ def add_directional(parent_np):
     light_np.look_at(0, 0, 0)
     light.setScene(parent_np)
     light.setShadowCaster(True)
-    light.setColor(LVector4(1, 1, 1, 1))
-    sun_range = 1
+    light.setColor(LVector4(0.65, 0.5, 0.5, 1))
+    sun_range = 0.001
     light.getLens(0).setFilmSize(sun_range, sun_range)  # 设置光照范围.(横向、纵向)
     if config.SHOW_LIGHT_FRUSTUM:
         light.showFrustum()
@@ -55,6 +55,6 @@ def add_spot(parent_np):
 
 def add_ambient(parent_np):
     alight = parent_np.attachNewNode(AmbientLight("Ambient"))
-    alight.node().setColor(LVector4(0.3, 0.3, 0.35, 1))
+    alight.node().setColor(LVector4(0.3, 0.3, 0.3, 1))
     parent_np.setLight(alight)
     return alight

@@ -4,6 +4,7 @@ from panda3d.core import *
 from panda3d.bullet import *
 from variable.global_vars import G
 import config
+from util import log
 
 
 class PhysicsWorld(object):
@@ -33,6 +34,19 @@ class PhysicsWorld(object):
             #debugNode.showWireframe(True)
             debugNp = G.render.attachNewNode(debugNode)
             debugNp.show()
+        self._accumulative_dt = 0
+        self._physical_step = 1 / 90.0
+        self._last_time = 0
+
+    def on_update2(self, dt):
+        total_t = dt + self._last_time
+        count = int(total_t / self._physical_step)
+        this_total_t = self._physical_step * count
+        self._last_time = total_t - this_total_t
+        self.world.do_physics(this_total_t + 0.001, count, self._physical_step)
+
+    def on_update(self, dt):
+        self.world.do_physics(dt)
 
     def get_world(self):
         return self.world
@@ -75,6 +89,17 @@ class PhysicsWorld(object):
 
     def add_cylinder_collider(self, box_np, mass=0, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
         shape, bbox = self.get_cylinder_shape(box_np, scale)
+        body = self.get_static_body('name', bit_mask, mass)
+        body.add_shape(shape, TransformState.makePos(Point3(0, 0, bbox[2] * .5)))
+        np = G.render.attachNewNode(body)
+        np.setName("physical_cylinder")
+        if reparent:
+            box_np.reparentTo(np)
+        self.world.attach_rigid_body(body)
+        return np, bbox
+
+    def add_box_collider(self, box_np, mass=0, bit_mask=config.BIT_MASK_OBJECT, reparent=False, scale=1.):
+        shape, bbox = self.get_box_shape(box_np, scale)
         body = self.get_static_body('name', bit_mask, mass)
         body.add_shape(shape, TransformState.makePos(Point3(0, 0, bbox[2] * .5)))
         np = G.render.attachNewNode(body)
@@ -165,9 +190,6 @@ class PhysicsWorld(object):
         np.setPos(0, 0, 0)
         self.world.attachRigidBody(node)
         return np
-
-    def on_update(self, dt):
-        self.world.do_physics(dt)
 
     def mouseHit(self, distance=1000):
         mn = G.mouseWatcherNode

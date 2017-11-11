@@ -11,9 +11,9 @@ import math
 
 class CameraManager(object):
     def __init__(self):
-        self.cam_pos_lerper = lerp_util.LerpVec3(3.6666)
+        self.cam_pos_lerper = lerp_util.LerpVec3(6.6666)
         self.cam_height_lerper = lerp_util.FloatLerp(30, 15, 2000 if G.debug else 40, 6.666)
-        self.cam_angle_lerper = lerp_util.FloatLerp(0, -100000, 100000, 8.7666)
+        self.cam_angle_lerper = lerp_util.FloatLerp(0, -100000, 100000, 13.7666)
         self.xy_ratio = 0.9
 
         G.accept('wheel_up', self._wheel_event, [-1])
@@ -21,7 +21,7 @@ class CameraManager(object):
         G.accept('q', self._change_angle, [-1])
         G.accept('e', self._change_angle, [1])
 
-        self._angle_gap = 90
+        self._angle_gap = 45
         self._angle_index = 0
 
         self._pos_offset = Vec3()
@@ -32,7 +32,9 @@ class CameraManager(object):
         self.cam_angle_lerper.set_target(self._angle_gap * self._angle_index)
 
     def _wheel_event(self, value):
-        self.cam_height_lerper.change_target(value * 5)
+        delta = value * 2.1
+        self.cam_height_lerper.change_value(delta)
+        self.cam_height_lerper.change_target(delta)
 
     def look_at(self, pos):
         self._center_pos = pos
