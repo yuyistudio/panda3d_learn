@@ -8,7 +8,9 @@ import sys
     python display.py xx.py
 xx.py可以包含如下属性:
     required:
-        generator 包含get(r,c)方法的地图生成器类
+        generator
+            get(r,c) (tile_name)
+            get_start_pos() (r,c)
     optional:
         见 supported_attrs 的定义.
 """
@@ -25,7 +27,7 @@ default_config = {
 }
 
 
-def display(generator, config, r, c, w=50, h=50):
+def display(generator, config, r, c, w, h):
     for ri in range(r, r + h):
         for ci in range(c, c + w):
             info = generator.get(ri, ci)
@@ -40,10 +42,14 @@ if __name__ == '__main__':
     supported_attrs = {
         'generator': None,
         'display_config': default_config,
-        'start_r': 0,
-        'start_c': 0,
     }
     for attr, default_value in supported_attrs.iteritems():
         if not hasattr(mod, attr):
             setattr(mod, attr, default_value)
-    display(mod.generator(), mod.display_config, mod.start_r, mod.start_c)
+    w = 50
+    h = 50
+    generator = mod.generator()
+    center_r, center_c = generator.get_start_pos()
+    display(generator, mod.display_config, int(center_r - h / 2), int(center_c - w / 2), w, h)
+
+
