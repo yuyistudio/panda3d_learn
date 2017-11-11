@@ -21,7 +21,14 @@ from direct.filter.CommonFilters import CommonFilters
 class Game(object):
     def __init__(self):
         G.post_effects = post_effects.PostEffects()
-        G.post_effects.turn_on()
+        def f():
+            G.post_effects.turn_on()
+        G.accept('z', f)
+        if False:
+            model = G.loader.loadModel("assets/blender/box.egg")
+            model.reparent_to(G.render)
+            G.run()
+            return
 
         log.process('setting font')
 
@@ -47,17 +54,36 @@ class Game(object):
         log.process("entering main loop")
         G.accept('f1', self._render_analysis)
 
-        G.taskMgr.add(self.main_loop, name="main_loop")
+        G.taskMgr.add(self.physical_loop, name="physical loop")
+        G.taskMgr.add(self.main_loop_task, name="main loop")
+
+        self._target_framerate = 30.
+
+        #self.main_loop()
         G.run()
+        self.main_loop()
         log.process("main loop finished")
+
 
     def _render_analysis(self):
         G.render.analyze()
 
+    def physical_loop(self, task):
+        dt = G.taskMgr.globalClock.getDt()
+        return task.cont
+
+    def main_loop_task(self, task):
+        G.post_effects.turn_on()
+        dt = G.taskMgr.globalClock.getDt()
+        G.state_mgr.on_update(dt)
+        G.physics_world.on_update(dt)
+        return task.cont
+
     def main_loop(self, task):
         dt = G.taskMgr.globalClock.getDt()
-        G.physics_world.on_update(dt)
         G.state_mgr.on_update(dt)
+        G.physics_world.on_update(dt)
         return task.cont
+
 
 Game()

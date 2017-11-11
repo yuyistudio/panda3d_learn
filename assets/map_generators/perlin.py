@@ -28,7 +28,7 @@ class PerlinMapGenerator(object):
 
     def exists(self, r, c):
         v = random_util.perlin_noise_2d(r, c, 0.13)
-        return True #v > 0.2
+        return v > 0.2
 
     def get_side_name(self):
         return 'side'
@@ -38,7 +38,7 @@ class PerlinMapGenerator(object):
 
     def get(self, r, c):
         if abs(r) + abs(c) > 23:
-            pass #return None
+            pass  #return None
         v = random_util.perlin_noise_2d(r, c, 0.13)
         for item in self._mapping:
             threshold, tile_type = item[0], item[1]

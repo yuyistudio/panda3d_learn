@@ -32,7 +32,7 @@ class GroundEntity(object):
                             'pos': G.operation.placement_mgr.get_pos(),
                     }
                 return {'action_type': 'trow_item_now', 'anim_name': 'pickup', 'event_name': 'pickup'}
-        log.debug("invalid action: tool[%s] key[%s] mouse[%s]", tool, key_type, mouse_entity)
+        # log.debug("invalid action: tool[%s] key[%s] mouse[%s]", tool, key_type, mouse_entity)
         return False
 
     def get_radius(self):
@@ -197,8 +197,9 @@ class Operation(object):
 
     def get_action_tool(self):
         tool = G.game_mgr.inventory.get_action_tool()
-        if tool:
-            return tool.get_component(ItemTool)
+        if tool and not tool.is_destroyed():
+            tool_com = tool.get_component(ItemTool)
+            return tool_com
         return self.tool_hand
 
     def _do_work_to_entity(self, entity, key):
@@ -210,7 +211,7 @@ class Operation(object):
         mouse_item = G.game_mgr.get_mouse_item()
         action_info = entity.allow_action(action_tool, key, mouse_item)
         if not action_info:
-            log.debug('action not allowed for entity: %s', entity)
+            # log.debug('action not allowed for entity: %s', entity)
             return False
         assert 'action_type' in action_info and 'anim_name' in action_info
 

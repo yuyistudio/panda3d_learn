@@ -35,11 +35,17 @@ class ObjModel(BaseComponent):
         self.is_static = config.get('static', False)  # TODO 对于静态物体，可以合并模型进行优化. np.flatten_strong()
         self.model_np = NodePath("unknown_model")
         G.loader.loadModel(model_path).get_children().reparent_to(self.model_np)
-        self.model_np.set_scale(self.scale)
+        if isinstance(self.scale, list):
+            self.model_np.set_scale(self.scale[0], self.scale[1], self.scale[2])
+        else:
+            self.model_np.set_scale(self.scale)
+
         self.model_np.set_pos(Vec3(0, 0, 0))
         for tex in self.model_np.find_all_textures():
-            tex.set_magfilter(Texture.FT_nearest)
-            tex.set_minfilter(Texture.FT_linear)
+            tex.set_magfilter(Texture.FT_linear_mipmap_linear)
+            tex.set_minfilter(Texture.FT_linear_mipmap_linear)
+            tex.setWrapU(Texture.WM_mirror)
+            tex.setWrapV(Texture.WM_mirror)
         self.enabled = True
         if not self.is_static:
             self.model_np.reparent_to(G.render)
@@ -47,11 +53,21 @@ class ObjModel(BaseComponent):
         physics_config = config.get('physics')
         self.physical_np = None
         if physics_config:
-            self.physical_np, self.half_size = G.physics_world.add_cylinder_collider(
-                self.model_np, mass=0, bit_mask=gconf.BIT_MASK_OBJECT,
-                reparent=False,
-                scale=self.collider_scale,
-            )
+            shape = physics_config.get('shape', 'cylinder')
+            if shape == 'cylinder':
+                self.physical_np, self.half_size = G.physics_world.add_cylinder_collider(
+                    self.model_np, mass=0, bit_mask=gconf.BIT_MASK_OBJECT,
+                    reparent=False,
+                    scale=self.collider_scale,
+                )
+            elif shape == 'box':
+                self.physical_np, self.half_size = G.physics_world.add_box_collider(
+                    self.model_np, mass=0, bit_mask=gconf.BIT_MASK_OBJECT,
+                    reparent=False,
+                    scale=self.collider_scale,
+                )
+            else:
+                assert False, (shape, config)
             body = self.physical_np.node()
             body.setDeactivationEnabled(True)
             body.setDeactivationTime(1.0)

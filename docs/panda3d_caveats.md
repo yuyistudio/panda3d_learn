@@ -28,3 +28,22 @@
 4. 设置texture filter type
 5. 使用anti-alias和fxaa
 
+但是anti和fxaa一起用的时候，报了好多错误，应该是Panda3D的bug.
+
+
+
+整个程序整体freeze的问题
+===============
+
+1. 通过打log可以知道freeze发生在自己的代码外面
+2. freeze的时候cpu利用率降到0，所以不是死循环，而是在dead lock了
+3. 搜到了一个已知问题，就是在主线程外面生成geometry的时候可能会dead lock。坑爹啊。。待解决
+
+
+
+行走卡顿问题
+======
+
+1. 卡顿发生的时候，FPS还是挺高的，40~60之间吧
+2. U3D里面有个FixedUpdate，不在这里面更新position也会导致卡顿
+3. 所以推测这种更新位置的操作，都需要Fixed time下完成，所以改配置将FPS锁死在30，感觉有点效果了

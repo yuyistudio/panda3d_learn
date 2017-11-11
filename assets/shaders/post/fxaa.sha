@@ -2,8 +2,8 @@
 
 varying vec4 posPos;
 uniform float FXAA_SUBPIX_SHIFT = 1.0/4.0;
-const float rt_w = 1024; // resolution width
-const float rt_h = 768; // resolution height
+const float rt_w = 1024*1.8; // resolution width
+const float rt_h = 768*1.8; // resolution height
 
 void vshader(float4 vtx_position : POSITION,
              out float4 l_position : POSITION,
