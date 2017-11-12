@@ -394,6 +394,7 @@ class BehaviourTree(object):
             cb = self._waiting_events[event_name]
             assert cb
             if cb:
+                del self._waiting_events[event_name]  # 清除等待事件。
                 self._last_status = cb(event_name)
                 assert self._last_status in VALID_STATUS
                 if self._last_status == RUNNING:

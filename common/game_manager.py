@@ -225,6 +225,7 @@ class GameManager(object):
         pos = G.operation.get_center_pos()
         G.dir_light.set_pos(pos)
         self.chunk_mgr.on_update(pos[0], pos[1], dt)
+        self.inventory.on_update(dt)
 
 
 

@@ -329,6 +329,7 @@ class ObjDestroyable(BaseComponent):
         BaseComponent.__init__(self)
         self._actions = config.get('types', dict())
         self._duration = config.get('duration')
+        self._anim_name = config.get('animation', 'tool')
         self._key = config.get('key', 'left')
 
     def on_start(self):
@@ -343,7 +344,8 @@ class ObjDestroyable(BaseComponent):
         best_action_type, max_duration = self._get_best_action(action_types)
         result = {
             'action_type': best_action_type,
-            'anim_name': 'tool',
+            'anim_name': 'punch' if tool.is_hand() else best_action_type,
+            'event_name': 'work_done',
         }
         return result
 

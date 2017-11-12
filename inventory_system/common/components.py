@@ -202,6 +202,7 @@ class ItemTool(BaseItemComponent):
         :param config:
         :return:
         """
+        self._is_hand = config.get('is_hand', False)
         BaseItemComponent.__init__(self)
         self._action_types = config.get('action_types')
         self._distance = config.get('distance')
@@ -209,6 +210,9 @@ class ItemTool(BaseItemComponent):
         self._endless_use = False
         if not self._duration:
             self._endless_use = True
+
+    def is_hand(self):
+        return self._is_hand
 
     def get_action_types(self):
         return self._action_types

@@ -29,7 +29,9 @@ class GroundEntity(object):
                 return {'action_type': 'throw_item_at', 'anim_name': 'pickup', 'event_name': 'pickup'}
             else:
                 if mouse_entity and G.operation.placement_mgr.is_placeable():
-                    return {'action_type': 'place', 'anim_name': 'craft',
+                    return {'action_type': 'place',
+                            'anim_name': 'craft',
+                            'event_name': 'work_done',
                             'pos': G.operation.placement_mgr.get_pos(),
                     }
                 return {'action_type': 'trow_item_now', 'anim_name': 'pickup', 'event_name': 'pickup'}
@@ -65,6 +67,12 @@ class GroundEntity(object):
             log.debug("throw item now!")
             return True
 
+STATE_IDLE = 1
+STATE_WALKING = 2
+STATE_KEY_WORKING = 3
+STATE_SPACE_WORKING = 4
+STATE_KEY_MOVING = 5
+
 
 class Operation(object):
     """
@@ -91,25 +99,30 @@ class Operation(object):
             self.OP_right_mouse_click, None, None,
             click_max_duration=1,
         )
+        self._space_key = keyboard.KeyStatus(
+            'space',
+            self.OP_space_click, self.OP_space_hold, self.OP_space_hold_done,
+            click_max_duration=0.12,
+        )
 
+        self._state = STATE_IDLE
+        self._space_target_entity = None
         self._enabled = False
-        self._hold_to_move = False
-        self._hold_to_work = False
         G.taskMgr.add(self.mouse_pick_task, "mouse_pick")
-        G.accept('space', self.OP_quick_action)
 
         # 当没有工具的时候，默认用手来执行action
         self.tool_hand = ItemTool({
+            'is_hand': True,
             "action_types": {
                 "pick": {"duration": 1},
                 "cut" : {"duration": 1},
             },
-            "distance"    : 0.1
+            "distance"    : 0.05,
         })
 
     def _on_hold_done(self):
-        self._hold_to_move = False
-        self._hold_to_work = False
+        self.controller.set_context('play_idle', True)
+        self._state = STATE_IDLE
 
     def get_mouse_position(self):
         return self.mouse_pos_on_ground
@@ -183,6 +196,7 @@ class Operation(object):
             return
         self._left_key.on_update(dt)
         self._right_key.on_update(dt)
+        self._space_key.on_update(dt)
 
         # 鼠标显示
         if self._hit_obj_ref:
@@ -254,6 +268,7 @@ class Operation(object):
             return
         if G.gui_mgr.is_mouse_on_gui():
             return
+        self.controller.set_context('play_idle', True)
         if not self._click_on_object(key):
             self._move_to_mouse(key)
 
@@ -263,12 +278,15 @@ class Operation(object):
         if G.gui_mgr.is_mouse_on_gui():
             return
 
-        if not self._hold_to_move:
+        self.controller.set_context('play_idle', False)
+        if self._state == STATE_IDLE or self._state == STATE_KEY_WORKING:
             if self._click_on_object('left'):
-                self._hold_to_work = True
+                self._state = STATE_KEY_WORKING
                 return
-        if not self._hold_to_work:
-            self._hold_to_move = True
+            else:
+                self.controller.set_context('play_idle', True)
+        if self._state == STATE_IDLE or self._state == STATE_KEY_MOVING:
+            self._state = STATE_KEY_MOVING
             self._move_to_mouse('left')
 
     def _move_to_mouse(self, key):
@@ -293,7 +311,11 @@ class Operation(object):
             return True
         return False
 
-    def OP_quick_action(self):
+    def OP_space_click(self):
+        """
+        返回成功进行了动作的obj。
+        :return:
+        """
         if not self._enabled or not self.target_ref:
             return
         target = self.target_ref()
@@ -302,11 +324,31 @@ class Operation(object):
         pos = target.get_pos()
         objs = G.game_mgr.chunk_mgr.get_closest_objects(pos.get_x(), pos.get_y(), size=4)
         if not objs:
-            log.debug("nothing to do")
             return
         for _, obj in objs:
             if self._do_work_to_entity(obj, 'left'):
-                break
+                return obj
+
+    def OP_space_hold(self):
+        self.controller.set_context('play_idle', False)
+        if self._state == STATE_SPACE_WORKING and not self._space_target_entity.is_destroyed():
+            if self._do_work_to_entity(self._space_target_entity, 'left') \
+                    and not self._space_target_entity.is_destroyed():
+                return
+            self._state = STATE_IDLE
+            self._space_target_entity = None
+            return
+        obj = self.OP_space_click()
+        if obj and not obj.is_destroyed():
+            self._space_target_entity = obj
+            self._state = STATE_SPACE_WORKING
+        else:
+            self.controller.set_context('play_idle', True)
+
+    def OP_space_hold_done(self):
+        self.controller.set_context('play_idle', True)
+        self._state = STATE_IDLE
+        self._space_target_entity = None
 
     def OP_craft(self):
         self.controller.set_context('buffered_work', None)

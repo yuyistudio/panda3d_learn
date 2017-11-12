@@ -1,6 +1,6 @@
 {
     "hero": {
-        "radius": 0.3,
+        "radius": 0.2,
         "components": {
             "inspectable": {
                 "iname": "主角"
@@ -30,7 +30,16 @@
                     },
                     "idle": {},
                     "craft": {
-                        "rate": 4
+                        "rate": 4,
+                        "events": [["work_done", 50]]
+                    },
+                    "cut": {
+                        "events": [["work_done", 15]],
+                        "rate": 3.5
+                    },
+                    "punch": {
+                        "events": [["work_done", 10]],
+                        "rate": 5
                     }
                 },
                 "default": "idle"
@@ -105,7 +114,7 @@
         }
     },
     "tree": {
-        "radius": 0.5,
+        "radius": 0.3,
         "components": {
             "inspectable": {
                 "iname": "树木"
