@@ -70,6 +70,14 @@ class Chunk(object):
             objects.extend(tile.objects)
         return objects
 
+    def get_objects_at_pos(self, x, y):
+        r, c = self.xy2rc(x, y)
+        tile = self.get_tile_at(r, c)
+        if tile:
+            result = [obj for obj in tile.objects if not obj.is_destroyed()]
+            return result
+        return []
+
     def get_tile_at(self, r, c):
         tile = self._tiles[r * self._tc + c]
         assert tile, 'rc (%s,%s) not in chunk range' % (r, c)

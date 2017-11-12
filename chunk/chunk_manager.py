@@ -167,6 +167,40 @@ class ChunkManager(object):
             chk.destroy()
         # TODO 考虑正在载入的部分
 
+    def get_around_objects(self, cx, cy, size=1):
+        objects = []
+        for dr in range(-size, size + 1):
+            for dc in range(-size, size + 1):
+                x = cx + dr * self._chunk_tile_size
+                y = cy + dc * self._chunk_tile_size
+                r, c = self.xy2rc(x, y)
+                chunk = self._chunks.get((r, c))
+                if chunk:
+                    objects.extend(chunk.get_objects_at_pos(x, y))
+        return objects
+
+    def get_closest_object(self, cx, cy, size):
+        objects = self.get_around_objects(cx, cy, size)
+        min_dist = 999
+        min_obj = None
+        for obj in objects:
+            pos = obj.get_pos()
+            dist = (cx - pos.get_x()) ** 2 + (cy - pos.get_y()) ** 2
+            if dist < min_dist:
+                min_dist = dist
+                min_obj = obj
+        return min_obj
+
+    def get_closest_objects(self, cx, cy, size):
+        objects = self.get_around_objects(cx, cy, size)
+        sorted_objects = []
+        for obj in objects:
+            pos = obj.get_pos()
+            dist = (cx - pos.get_x()) ** 2 + (cy - pos.get_y()) ** 2
+            sorted_objects.append((dist, obj))
+        sorted_objects.sort(key=lambda v: v[0])
+        return sorted_objects
+
     def on_load(self):
         """
         不需要on_load函数，载入on_update时动态载入。

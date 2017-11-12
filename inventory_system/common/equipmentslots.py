@@ -57,7 +57,7 @@ class EquipmentSlots(object):
 
     def take_equipment_at(self, idx):
         equip_item = self._bag.take_item_at(idx)
-        if equip_item:
+        if equip_item and not equip_item.is_destroyed():
             equippable = equip_item.get_component(ItemEquippable)
             assert equippable, equip_item.get_name()
             equippable.on_unequipped(self._index2name[idx])
