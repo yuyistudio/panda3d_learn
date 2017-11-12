@@ -2,6 +2,8 @@
 
 from panda3d.core import *
 from variable.global_vars import G
+from util import log
+
 
 forward_button = KeyboardButton.ascii_key('w')
 backward_button = KeyboardButton.ascii_key('s')
@@ -40,6 +42,7 @@ class KeyStatus(object):
         self._on_click = on_click_cb
         self._on_hold_done = on_hold_done
         self._on_hold = on_hold_cb
+        self._key = key
         G.accept(key, self._mouse_click_event, ['down'])
         G.accept('%s-up' % key, self._mouse_click_event, ['up'])
 
@@ -51,6 +54,8 @@ class KeyStatus(object):
                     self._on_hold()
 
     def _mouse_click_event(self, status):
+        if self._key == 'space':
+            log.debug("space event: %s", status)
         if status == 'up':
             if self._key_timer <= self._click_max_duration:
                 # click事件

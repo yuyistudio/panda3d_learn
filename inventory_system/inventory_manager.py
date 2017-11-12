@@ -8,7 +8,7 @@ from variable.global_vars import G
 from util import log, keyboard
 from collections import namedtuple
 from inventory_system.common.components import ItemEquippable, ItemPlaceable
-
+from util import tween
 
 ItemData = namedtuple('ItemData', ['item', 'bag', 'is_equipment'])
 
@@ -24,6 +24,7 @@ class InventoryManager(object):
         G.gui_mgr.set_inventory_cb(self._on_item_clicked, self._on_item_hover)
         self.refresh_mouse()
         self.refresh_inventory()
+        self._timer_refresh = tween.Tween(duration=3.345, loop_type=tween.LoopType.Loop, on_complete=self._on_refresh)
 
     def _on_mouse_changed(self, old_item, new_item):
         if new_item:
@@ -33,7 +34,6 @@ class InventoryManager(object):
                 G.operation.placement_mgr.enable(model_path, scale, shape=shape, gap=gap)
                 return
         G.operation.placement_mgr.disable()
-
 
     def quick_equip(self, bag, idx):
         res = self._inventory_data.quick_equip(bag, idx)
@@ -148,6 +148,14 @@ class InventoryManager(object):
         if not tex:
             log.error("texture %s not found", item_config['texture'])
         return tex
+
+    def on_update(self, dt):
+        self._timer_refresh.on_update(dt)
+
+    def _on_refresh(self):
+        # 兜底策略
+        self.refresh_mouse()
+        self.refresh_inventory()
 
     def refresh_inventory(self):
         """

@@ -61,7 +61,9 @@ class GroundGeomUtil(object):
                 cache[(tile_r, tile_c)] = self._tile_info_to_uv_info(info)
         plane_geom_node = procedural_model.create_plane(
             self._side_uv, self._chunk_tile_size, self._chunk_tile_count, cache)
+        log.debug("before attack ground plane")
         plane_np = G.render.attach_new_node(plane_geom_node)
+        log.debug("after attack ground plane")
         plane_np.set_pos(Vec3(c * self._chunk_size, r * self._chunk_size, 0))
         texture_file = None
         if self._texture_config:
