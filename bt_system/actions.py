@@ -191,6 +191,7 @@ class ActionHeroWork(BaseAction):
         BaseAction.__init__(self, name)
         self._wander_range = wander_range
         self._buffered_work = None
+        self._action_when_done = False
 
     def on_action(self):
         buffered_work = self.bt.get('buffered_work')
@@ -218,12 +219,22 @@ class ActionHeroWork(BaseAction):
             self._controller.look_at(target_entity.get_pos())
         anim = buffered_work.get('anim_name', 'tool')
         self._animator.play(anim, once=True)
+
+        self.bt.wait_for_event('anim.%s.done' % anim, self._anim_cb)
         event_name = buffered_work.get('event_name', 'done')
-        self.bt.wait_for_event('anim.%s.%s' % (anim, event_name), self._anim_cb)
+        if event_name == 'done':
+            self._action_when_done = True
+        else:
+            self._action_when_done = False
+            self.bt.wait_for_event('anim.%s.%s' % (anim, event_name), self._anim_cb)
         return RUNNING
 
     def _anim_cb(self, event_name):
         buffered_work = self.bt.get('buffered_work')
+        log.debug("anim event: %s", event_name)
+        if event_name.endswith('.done'):
+            if not self._action_when_done:
+                return SUCCESS
         if buffered_work and buffered_work == self._buffered_work:
             log.debug('work done: %s', buffered_work.get('anim_name', 'craft'))
 
@@ -234,7 +245,10 @@ class ActionHeroWork(BaseAction):
                 return FAIL
             if entity.do_action(buffered_work, tool, buffered_work['key'], G.game_mgr.get_mouse_item()):
                 tool.on_use(buffered_work['action_type'])
-                return SUCCESS
+                if event_name.endswith('.done'):
+                    return SUCCESS
+                else:
+                    return RUNNING
             else:
                 return FAIL
         else:
@@ -244,5 +258,7 @@ class ActionHeroWork(BaseAction):
     def on_finish(self, is_abort, status):
         self._buffered_work = None
         self.bt.set('buffered_work', None)
+        if self.bt.get('play_idle'):
+            self._animator.play("idle", once=False)
 
 

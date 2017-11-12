@@ -5,6 +5,7 @@ from direct.actor import Actor
 from panda3d.core import *
 from variable.global_vars import G
 import types
+from util import log
 
 
 class Animator(object):
@@ -87,6 +88,9 @@ class Animator(object):
         if not self._events:
             return
 
+        if not anim_name:
+            anim_name = self._last_anim
+
         anim_events = self._events.get(anim_name)
         if not anim_events:
             return
@@ -97,8 +101,11 @@ class Animator(object):
             while self._current_event_idx < len(anim_events):
                 self._emit_event(anim_name, anim_events[self._current_event_idx][0])
                 self._current_event_idx += 1
+            # 触发done事件
+            self._emit_event(anim_name, 'done')
             # 重头开始触发事件
             self._current_event_idx = 0
+            self._last_frame = -1
         else:
             self._last_frame = current_frame
             if self._current_event_idx == Animator._NO_MORE_EVENT:
@@ -119,16 +126,7 @@ class Animator(object):
 
     def on_update(self):
         current_anim = self._actor_np.getCurrentAnim()
-        if not current_anim:
-            self._emit_event(self._last_anim, 'done')
-            self._last_anim = 'idle'
-            self._current_event_idx = 0
-            self._last_frame = -1
-            self._check_events(self._last_anim, -1)  # 检查done事件
-            self.play('idle', once=False)
-            return
-
-        self._check_events(current_anim, self._actor_np.getCurrentFrame())
+        self._check_events(current_anim, self._actor_np.getCurrentFrame() or 0)
         self._last_anim = current_anim
 
     def play(self, anim_name, once):
