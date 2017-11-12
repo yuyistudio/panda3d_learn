@@ -2,7 +2,7 @@
 
 __author__ = 'Leon'
 
-from util.states import BaseGameState
+from util.states import BaseState
 from variable.global_vars import G
 from common import game_manager, spawner, camera
 from panda3d.core import Vec3
@@ -10,9 +10,9 @@ from assets.map_generators.perlin import *
 from util import log
 
 
-class MainMenuState(BaseGameState):
+class MainMenuState(BaseState):
     def __init__(self):
-        BaseGameState.__init__(self, "menu.menu")
+        BaseState.__init__(self, "menu.menu")
 
     def on_enter(self, last_name):
         log.process("creating main menu")
@@ -30,9 +30,9 @@ class MainMenuState(BaseGameState):
         G.gui_mgr.set_main_menu_visible(True)
 
 
-class GamePlayState(BaseGameState):
+class GamePlayState(BaseState):
     def __init__(self):
-        BaseGameState.__init__(self, "game.play")
+        BaseState.__init__(self, "game.play")
         self._main_menu_visible = False
 
     def on_leave(self, next_name):
@@ -81,8 +81,8 @@ class GamePlayState(BaseGameState):
         G.camera_mgr.on_update(dt)
 
 
-class GamePauseState(BaseGameState):
+class GamePauseState(BaseState):
     def __init__(self):
-        BaseGameState.__init__(self, "game.pause")
+        BaseState.__init__(self, "game.pause")
 
 

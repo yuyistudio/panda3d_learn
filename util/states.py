@@ -13,7 +13,7 @@ on_leave
 from util import log
 
 
-class BaseGameState(object):
+class BaseState(object):
     """
     基类，用来被继承并实现需要的回调函数。
     """
@@ -103,12 +103,12 @@ import unittest
 class StatesTest(unittest.TestCase):
     def test_states(self):
         sm = StatesManager("_main_menu")
-        sm.add_state(BaseGameState("_main_menu"))
-        sm.add_state(BaseGameState("storage_select"))
-        sm.add_state(BaseGameState("game.game"))
-        sm.add_state(BaseGameState("game.pause"))
-        sm.add_state(BaseGameState("game.map"))
-        sm.add_state(BaseGameState("game.menu"))
+        sm.add_state(BaseState("_main_menu"))
+        sm.add_state(BaseState("storage_select"))
+        sm.add_state(BaseState("game.game"))
+        sm.add_state(BaseState("game.pause"))
+        sm.add_state(BaseState("game.map"))
+        sm.add_state(BaseState("game.menu"))
 
         self.assertEqual(sm.get_current_name(), "_main_menu")
         sm.push("storage_select")

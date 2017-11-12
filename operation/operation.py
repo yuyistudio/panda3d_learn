@@ -7,6 +7,7 @@ from util import keyboard
 from entity_system.base_components import ObjHeroController
 from inventory_system.common.components import *
 import placement_manager
+from direct.fsm.FSM import FSM
 
 
 class GroundEntity(object):
@@ -95,7 +96,7 @@ class Operation(object):
         self._hold_to_move = False
         self._hold_to_work = False
         G.taskMgr.add(self.mouse_pick_task, "mouse_pick")
-        G.accept('space', self.OP_craft)
+        G.accept('space', self.OP_quick_action)
 
         # 当没有工具的时候，默认用手来执行action
         self.tool_hand = ItemTool({
@@ -203,6 +204,12 @@ class Operation(object):
         return self.tool_hand
 
     def _do_work_to_entity(self, entity, key):
+        """
+        返回是否成功进行了动作。
+        :param entity:
+        :param key:
+        :return:
+        """
         if not self._enabled:
             return False
         if self.controller.is_doing_action():
@@ -286,10 +293,22 @@ class Operation(object):
             return True
         return False
 
-    def OP_craft(self):
-        if not self._enabled:
+    def OP_quick_action(self):
+        if not self._enabled or not self.target_ref:
             return
+        target = self.target_ref()
+        if not target:
+            return
+        pos = target.get_pos()
+        objs = G.game_mgr.chunk_mgr.get_closest_objects(pos.get_x(), pos.get_y(), size=4)
+        if not objs:
+            log.debug("nothing to do")
+            return
+        for _, obj in objs:
+            if self._do_work_to_entity(obj, 'left'):
+                break
 
+    def OP_craft(self):
         self.controller.set_context('buffered_work', None)
         self.controller.emit_event('craft')
 
