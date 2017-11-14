@@ -29,6 +29,20 @@ class InventoryGUI(object):
             ALIGNMENT_BOTTOM_RIGHT,
             margin=0.001, padding_horizontal=0.001, padding_vertical=0.001
         )
+        self._box_3x3 = InventoryLayout(
+            "assets/images/gui/cell.png",
+            "assets/images/gui/item_bar.png",
+            3, 3,
+            self._click_cb, self._hover_cb,
+            ALIGNMENT_CENTER,
+            margin=0.001, padding_horizontal=0.001, padding_vertical=0.001
+        )
+        self._bags = {
+            'bag': self._bag,
+            'item_bar': self._item_bar,
+            'equipment': self._equipments,
+            'box_3x3': self._box_3x3,
+        }
         scale = 0.7
         self._user_hover_cb = None
         self._user_click_cb = None
@@ -38,10 +52,19 @@ class InventoryGUI(object):
         self._item_bar.setScale(scale)
         self._equipments.setPos(-0.1, 0.01)
         self._equipments.setScale(scale)
+        self._box_3x3.setScale(scale)
+        self._box_3x3.setVisible(False)  # hidden by default.
+        self._box_3x3.setPos(0, 0.5)
         self._hover = False
 
     def is_hover(self):
         return self._hover
+
+    def set_visibility(self, bag_name, visibility):
+        self._bags[bag_name].setVisible(visibility)
+
+    def set_item(self, bag_name, idx, image_path, user_data, count=0):
+        self._bags[bag_name].set_item(idx, image_path, user_data, count)
 
     def set_bag_item(self, idx, image_path, user_data, count=0):
         self._bag.set_item(idx, image_path, user_data, count)

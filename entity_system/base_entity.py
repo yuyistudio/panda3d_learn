@@ -1,7 +1,6 @@
 #encoding: utf8
 
 
-import base_components
 from variable.global_vars import G
 from util import log
 from base_component import *
@@ -187,15 +186,6 @@ class BaseEntity(object):
     def need_update(self):
         return len(self._updating_componets) > 0
 
-
-def register_object_components():
-    coms = []
-    for name, com in vars(base_components).iteritems():
-        if name.startswith("Obj"):
-            coms.append(com)
-    BaseEntity.register_components(coms)
-
-register_object_components()
 
 
 import unittest

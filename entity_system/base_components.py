@@ -11,6 +11,7 @@ from util import log, tween
 from config import *
 from direct.interval.LerpInterval import LerpPosInterval
 from direct.interval.IntervalGlobal import *
+from inventory_system.common.bag import Bag
 
 
 class ObjInspectable(BaseComponent):
@@ -307,6 +308,72 @@ class ObjLoot(BaseComponent):
         radius = ent.get_radius()
         for loot_name, loot_count in self._loots:
             G.game_mgr.create_item_on_ground(center_pos, radius, loot_name, loot_count)
+
+
+class ObjBox(BaseComponent):
+    name = 'box'
+    entity_type = ENTITY_TYPE_OBJECT
+
+    def __init__(self, config):
+        """
+        {
+            "key": "right",
+            "capacity": [3, 3],
+        }
+        :param config:
+        :return:
+        """
+        BaseComponent.__init__(self)
+        self._key = config.get('key', 'left')
+        self._capacity = config.get('capacity', (3, 3))
+        self._auto_close_distance = config.get('close_distance', 3.3)
+        self._bag = Bag(self._capacity[0] * self._capacity[1])
+        self._opening = False
+
+    def allow_action(self, tool, key_type, mouse_entity):
+        if key_type == self._key:
+            return {
+                'action_type': 'open_box',
+                'anim_name': 'quick_pick',
+                'event_name': 'work_done',
+            }
+        return None
+
+    def do_action(self, action_info, tool, key_type, mouse_entity):
+        if key_type != self._key:
+            return
+        if mouse_entity:
+            res = self._bag.add_item(mouse_entity)
+            if res == consts.BAG_PUT_TOTALLY:
+                G.game_mgr.inventory.take_mouse_item()
+        if self._opening:
+            if not mouse_entity:
+                G.game_mgr.inventory.hide_box()
+                self._opening = False
+        else:
+            G.game_mgr.inventory.show_box(self._bag, self.on_close)
+            self._opening = True
+
+    def on_close(self):
+        if not self._opening:
+            return False
+        G.game_mgr.inventory.hide_box()
+        self._opening = False
+
+    def on_update(self, dt):
+        if not self._opening:
+            return
+        diff = self.get_entity().get_pos() - G.operation.get_center_pos()
+        dist = diff.length()
+        if dist > self._auto_close_distance:
+            G.game_mgr.inventory.hide_box()
+            self._opening = False
+
+    def on_save(self):
+        return self._bag.on_save()
+
+    def on_load(self, data):
+        self._bag.on_load(data)
 
 
 class ObjDestroyable(BaseComponent):

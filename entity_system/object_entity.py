@@ -9,6 +9,7 @@ from variable.global_vars import G
 from util import log
 from base_component import *
 from config import *
+import base_components
 
 
 class ObjectEntity(BaseEntity):
@@ -92,3 +93,11 @@ class ObjectEntity(BaseEntity):
         return self._transform_com.get_pos()
 
 
+def register_object_components():
+    coms = []
+    for name, com in vars(base_components).iteritems():
+        if name.startswith("Obj"):
+            coms.append(com)
+    BaseEntity.register_components(coms)
+
+register_object_components()

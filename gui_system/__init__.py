@@ -41,6 +41,12 @@ class GUIManager(object):
     def set_inventory_cb(self, click_cb, hover_cb):
         self._inventory.set_user_cb(hover_cb, click_cb)
 
+    def set_item(self, bag_name, idx, image_path, user_data, count=0):
+        return self._inventory.set_item(bag_name, idx, image_path, user_data, count)
+
+    def set_inventory_visibility(self, bag_name, visibility):
+        self._inventory.set_visibility(bag_name, visibility)
+
     def set_bag_item(self, idx, image_path, user_data, count=0):
         self._inventory.set_bag_item(idx, image_path, user_data, count)
 

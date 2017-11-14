@@ -214,6 +214,7 @@ class Chunk(object):
     def _iterate_objects(self):
         while True:
             # 每一帧更新一个Tile
+            counter = 0
             for tile in self._tiles:
                 obj = None
                 remained_objects = []
@@ -222,6 +223,7 @@ class Chunk(object):
                     if entity.is_destroyed():
                         continue
                     entity.on_update(self._iterator_dt)
+                    counter += 1
                     pos = entity.get_pos()
                     if self.xy_in_chunk(pos.getX(), pos.getY()):
                         remained_objects.append(obj)
@@ -229,7 +231,9 @@ class Chunk(object):
                         self._frozen_objects.append(obj)
                 tile.objects = remained_objects
                 del obj  # 每一帧中都确保没有对entity的多余引用
-                yield
+                if counter > 50:
+                    counter = 0
+                    yield
 
             # 更新所有的frozen_objects
             remained_objects = []

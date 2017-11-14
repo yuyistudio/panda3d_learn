@@ -20,11 +20,18 @@ class InventoryManager(object):
     """
     def __init__(self):
         self._inventory_data = Inventory(G.res_mgr.get_item_config())
+
+        # box
+        self._on_close_box_fn = None
+        self._current_box_data = None
+        self._opening = False
+
         Inventory.on_mouse_changed = self._on_mouse_changed
         G.gui_mgr.set_inventory_cb(self._on_item_clicked, self._on_item_hover)
         self.refresh_mouse()
         self.refresh_inventory()
         self._timer_refresh = tween.Tween(duration=3.345, loop_type=tween.LoopType.Loop, on_complete=self._on_refresh)
+
 
     def _on_mouse_changed(self, old_item, new_item):
         if new_item:
@@ -157,6 +164,45 @@ class InventoryManager(object):
         self.refresh_mouse()
         self.refresh_inventory()
 
+    def show_box(self, bag_data, on_close_fn, bag_name="box_3x3"):
+        assert bag_data.get_cell_count() == 9
+        self._opening = True
+        if self._on_close_box_fn:
+            self._on_close_box_fn()
+        self._refresh_box(bag_name)
+        G.gui_mgr.set_inventory_visibility(bag_name, True)
+        self._on_close_box_fn = on_close_fn
+        self._current_box_data = bag_data
+
+    def _refresh_box(self, bag_name):
+        def _set_fn(idx, texture, user_data, count):
+            return G.gui_mgr.set_item(bag_name, idx, texture, user_data, count)
+        if self._current_box_data:
+            self._refresh_bag_gui(self._current_box_data, _set_fn, False)
+
+    def hide_box(self, bag_name='box_3x3'):
+        self._opening = False
+        G.gui_mgr.set_inventory_visibility(bag_name, False)
+
+    def _refresh_bag_gui(self, bag, set_item_fn, is_equipment):
+        for idx, item in bag.iter_items():
+            if not item:
+                set_item_fn(
+                    idx,
+                    None,
+                    ItemData(item=None, bag=bag, is_equipment=is_equipment),
+                    0,
+                )
+                continue
+            texture = self._get_item_texture(item)
+            assert texture
+            set_item_fn(
+                idx,
+                texture,
+                ItemData(item=item, bag=bag, is_equipment=is_equipment),
+                item.get_count(),
+            )
+
     def refresh_inventory(self):
         """
         将数据同步到GUI。
@@ -169,23 +215,7 @@ class InventoryManager(object):
                 self._inventory_data.get('bag'),
                 self._inventory_data.get('equipment_slots')]
         for bag_idx in range(len(bags)):
-            bag = bags[bag_idx]
-            set_item_gui = fns[bag_idx]
-            for idx, item in bag.iter_items():
-                if not item:
-                    set_item_gui(
-                        idx,
-                        None,
-                        ItemData(item=None, bag=bag, is_equipment=bag_idx == 2),
-                        0,
-                    )
-                    continue
-                texture = self._get_item_texture(item)
-                assert texture
-                set_item_gui(
-                    idx,
-                    texture,
-                    ItemData(item=item, bag=bag, is_equipment=bag_idx == 2),
-                    item.get_count(),
-                )
-
+            self._refresh_bag_gui(bags[bag_idx], fns[bag_idx], bag_idx == 2)
+        if self._opening:
+            log.debug("refresh box")
+            self._refresh_box('box_3x3')

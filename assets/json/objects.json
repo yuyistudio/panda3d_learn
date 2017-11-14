@@ -40,6 +40,10 @@
                     "punch": {
                         "events": [["work_done", 10]],
                         "rate": 5
+                    },
+                    "quick_pick": {
+                        "events": [["work_done", 20]],
+                        "rate": 3
                     }
                 },
                 "default": "idle"
@@ -86,6 +90,33 @@
         "components": {
             "inspectable": {
                 "iname": "箱子"
+            },
+            "destroyable": {
+                "types": {
+                    "pick": {"efficiency": 0.2},
+                    "cut": {"efficiency": 1}
+                },
+                "duration": 8,
+                "key": "left"
+            },
+            "model": {
+                "static": true,
+                "model_file": "assets/blender/box.egg",
+                "physics": {
+                    "shape": "box"
+                },
+                "scale": 1.0
+            },
+            "box": {
+                "key": "right",
+                "capacity": [3, 3]
+            }
+        }
+    },
+    "wall": {
+        "components": {
+            "inspectable": {
+                "iname": "墙壁"
             },
             "destroyable": {
                 "types": {
