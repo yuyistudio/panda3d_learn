@@ -32,7 +32,6 @@ class InventoryManager(object):
         self.refresh_inventory()
         self._timer_refresh = tween.Tween(duration=3.345, loop_type=tween.LoopType.Loop, on_complete=self._on_refresh)
 
-
     def _on_mouse_changed(self, old_item, new_item):
         if new_item:
             placeable = new_item.get_component(ItemPlaceable)
@@ -90,6 +89,7 @@ class InventoryManager(object):
                 if self._inventory_data.mouse_click_at_equipment(idx):
                     current_mouse_item = self.get_mouse_item()
                     assert old_mouse_item != current_mouse_item
+                    self._refresh_box('box_3x3')
                     self.refresh_inventory()
                     self.refresh_mouse()
             log.debug("equipment clicked!")
@@ -109,6 +109,7 @@ class InventoryManager(object):
                     data.item.on_quick_action(data.bag, idx, self.get_mouse_item())
                     if data.item.is_destroyed():
                         data.bag.remove_item_at(idx)
+            self._refresh_box('box_3x3')
             self.refresh_inventory()
             self.refresh_mouse()
 
@@ -157,12 +158,14 @@ class InventoryManager(object):
         return tex
 
     def on_update(self, dt):
-        self._timer_refresh.on_update(dt)
+        # self._timer_refresh.on_update(dt)
+        pass
 
     def _on_refresh(self):
         # 兜底策略
         self.refresh_mouse()
         self.refresh_inventory()
+        self._refresh_box('box_3x3')
 
     def show_box(self, bag_data, on_close_fn, bag_name="box_3x3"):
         assert bag_data.get_cell_count() == 9
